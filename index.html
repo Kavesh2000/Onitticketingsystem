@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onit Microfinance Bank</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0A2540 0%, #0F766E 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        .welcome {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #F8FAFC;
+            text-align: center;
+            text-shadow: 
+                1px 1px 0px #1F2937,
+                2px 2px 0px #1F2937,
+                3px 3px 0px #1F2937,
+                4px 4px 0px #1F2937,
+                5px 5px 0px #1F2937,
+                6px 6px 1px rgba(0,0,0,.1),
+                0px 0px 5px rgba(0,0,0,.1),
+                1px 1px 3px rgba(0,0,0,.3),
+                3px 3px 5px rgba(0,0,0,.2),
+                5px 5px 10px rgba(0,0,0,.25),
+                10px 10px 10px rgba(0,0,0,.2),
+                20px 20px 20px rgba(0,0,0,.15);
+        }
+        @media (max-width: 768px) {
+            .welcome {
+                font-size: 2.5rem;
+            }
+        }
+        /* Live/bold heading styles */
+        .live-heading {
+            display: inline-block;
+            background: linear-gradient(90deg,#0f1724 0%, #0b1220 40%, #0ea5ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 6px 18px rgba(2,6,23,0.6);
+            position: relative;
+        }
+        .live-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-left: 10px;
+            background: #0ea5ff;
+            border-radius: 9999px;
+            box-shadow: 0 0 12px rgba(14,165,255,0.85);
+            vertical-align: middle;
+            animation: pulse 1.6s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; box-shadow: 0 0 6px rgba(14,165,255,0.9); }
+            50% { transform: scale(1.25); opacity: 0.8; box-shadow: 0 0 20px rgba(14,165,255,0.6); }
+            100% { transform: scale(1); opacity: 1; box-shadow: 0 0 6px rgba(14,165,255,0.9); }
+        }
+
+        /* 3D embossed heading */
+        .three-d {
+            font-weight: 900;
+            font-size: 3.25rem;
+            line-height: 1;
+            background: linear-gradient(180deg, #0f1724 0%, #0b1220 40%, #0ea5ff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            text-transform: none;
+            letter-spacing: 0.4px;
+            text-shadow:
+                0 1px 0 rgba(255,255,255,0.02),
+                0 2px 0 rgba(0,0,0,0.06),
+                0 6px 8px rgba(2,6,23,0.6);
+        }
+
+        .three-d::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 0; top: 0;
+            z-index: -1;
+            color: rgba(2,6,23,0.12);
+            transform: translateY(10px) skewY(-3deg);
+            filter: blur(1px);
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="text-center">
+        <!-- Logo Section (favicon only) -->
+        <div class="mb-12 flex flex-col items-center gap-4">
+                <div class="text-center">
+                <h1 class="three-d" data-text="Welcome to Onit MFB">Welcome to Onit MFB</h1>
+            </div>
+        </div>
+
+        
+        
+        <!-- Portal Selection (dropdown) -->
+        <div id="portalSelect" class="bg-gray-100 bg-opacity-90 p-8 rounded-lg max-w-3xl mx-auto shadow-lg mb-8">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Select Portal</h2>
+            <div class="flex items-center justify-center gap-4">
+                <label for="portalDropdown" class="sr-only">Select Portal</label>
+                <select id="portalDropdown" class="w-72 px-4 py-3 border border-gray-300 rounded bg-white text-gray-800">
+                    <option value="">-- Choose a portal --</option>
+                    <option value="user">👤 User Portal</option>
+                    <option value="finance">💰 Finance Portal</option>
+                    <option value="branch">🏦 Branch Portal</option>
+                    <option value="ict">💻 ICT Portal</option>
+                    <option value="admin">🔐 Admin Portal</option>
+                </select>
+                
+            </div>
+        </div>
+        
+        <!-- User Login Form -->
+        <div id="userLoginForm" class="bg-gray-100 bg-opacity-90 p-8 rounded-lg max-w-md mx-auto shadow-lg hidden">
+            <button id="backFromUserBtn" class="text-blue-600 hover:text-blue-700 text-sm mb-4">← Back</button>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">User Login</h2>
+            <form id="userLoginFormEl">
+                <div class="mb-4">
+                    <label for="userEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                    <select id="userEmail" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Loading users...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label for="userPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="userPassword" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md font-semibold transition text-white">Login</button>
+            </form>
+            <p id="userLoginMessage" class="mt-4 text-center text-red-500"></p>
+        </div>
+        
+        <!-- Admin Login Form -->
+        <div id="adminLoginForm" class="bg-gray-100 bg-opacity-90 p-8 rounded-lg max-w-md mx-auto shadow-lg hidden">
+            <button id="backFromAdminBtn" class="text-red-600 hover:text-red-700 text-sm mb-4">← Back</button>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Admin Login</h2>
+            <form id="adminLoginFormEl">
+                <div class="mb-4">
+                    <label for="adminUsername" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="adminUsername" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="admin@maishabank.com">
+                </div>
+                <div class="mb-4">
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="adminPassword" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500">
+                </div>
+                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md font-semibold transition text-white">Login</button>
+            </form>
+            <p id="adminLoginMessage" class="mt-4 text-center text-red-500"></p>
+        </div>
+    </div>
+    <script>
+
+        // Initialize employees data (reinitialize if old schema detected)
+        function initializeEmployees() {
+            const existing = localStorage.getItem('employees');
+            if (existing) {
+                try {
+                    const parsed = JSON.parse(existing);
+                    // If parsed data already contains `type` field, assume new schema and keep it
+                    if (Array.isArray(parsed) && parsed.some(e => Object.prototype.hasOwnProperty.call(e, 'type'))) {
+                        return;
+                    }
+                    // Otherwise fall through to reinitialize with new schema
+                } catch (e) {
+                    // If parse fails, reinitialize
+                }
+            }
+
+            let employees = [
+                // Regular Users (numeric IDs)
+                { id: '1', name: 'John Smith', type: 'user', email: 'john.smith@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
+                { id: '2', name: 'Jane Doe', type: 'user', email: 'jane.doe@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
+                { id: '3', name: 'Michael Johnson', type: 'user', email: 'michael.johnson@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
+                { id: '4', name: 'Sarah Williams', type: 'user', email: 'sarah.williams@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
+                { id: '5', name: 'David Brown', type: 'user', email: 'david.brown@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
+                // Admins
+                { id: '6', name: 'Admin One', type: 'admin', email: 'admin1@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } },
+                { id: '7', name: 'Admin Two', type: 'admin', email: 'admin2@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } },
+                { id: '8', name: 'System Admin', type: 'admin', email: 'sysadmin@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } }
+            ];
+            // Assign random departments to users that don't have one (helpful for testing assignment)
+            const departments = ['IT','Finance','HR','Support','Operations'];
+            employees = employees.map(e => {
+                if (!e.department || String(e.department).trim() === '') {
+                    // Prefer admin users to have an Admin or Operations department
+                    if ((e.type||'').toLowerCase() === 'admin') {
+                        e.department = 'Operations';
+                    } else {
+                        e.department = departments[Math.floor(Math.random()*departments.length)];
+                    }
+                }
+                return e;
+            });
+            localStorage.setItem('employees', JSON.stringify(employees));
+            // Initialize numeric ID counters for various entities
+            const nextIds = JSON.parse(localStorage.getItem('nextIds') || '{}');
+            nextIds.employees = Math.max(nextIds.employees || 1, 9);
+            nextIds.tickets = nextIds.tickets || 1;
+            nextIds.leaveRequests = nextIds.leaveRequests || 1;
+            nextIds.claims = nextIds.claims || 1;
+            localStorage.setItem('nextIds', JSON.stringify(nextIds));
+            console.log('Employees data initialized');
+        }
+
+        window.onload = function() {
+            // Clear any existing login session
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('isAdmin');
+            
+            // Initialize employees
+            initializeEmployees();
+            
+            // Setup portal selection
+            setupPortalSelection();
+            // Populate Customer Service emails for User portal login
+            populateCustomerServiceUsers();
+        };
+
+        function populateCustomerServiceUsers() {
+            const sel = document.getElementById('userEmail');
+            if (!sel) return;
+            fetch('/api/users').then(r => r.json()).then(data => {
+                const users = (data.users || []).filter(u => ((u.department || '').toLowerCase() === 'customer service' || (u.department || '').toLowerCase() === 'customer'));
+                if (users.length === 0) {
+                    const employees = JSON.parse(localStorage.getItem('employees') || '[]').filter(e => (e.department || '').toLowerCase() === 'customer service');
+                    if (employees.length > 0) {
+                        sel.innerHTML = '<option value="">Select user...</option>' + employees.map(u => `<option value="${u.email}">${u.email}</option>`).join('');
+                        return;
+                    }
+                    sel.innerHTML = '<option value="">No customer service users</option>';
+                    return;
+                }
+                sel.innerHTML = '<option value="">Select user...</option>' + users.map(u => `<option value="${u.email}">${u.email}</option>`).join('');
+            }).catch(err => {
+                const employees = JSON.parse(localStorage.getItem('employees') || '[]').filter(e => (e.department || '').toLowerCase() === 'customer service');
+                if (employees.length > 0) {
+                    sel.innerHTML = '<option value="">Select user...</option>' + employees.map(u => `<option value="${u.email}">${u.email}</option>`).join('');
+                } else {
+                    sel.innerHTML = '<option value="">No users</option>';
+                }
+            });
+        }
+
+        function setupPortalSelection() {
+            const portalDropdown = document.getElementById('portalDropdown');
+            const backFromUserBtn = document.getElementById('backFromUserBtn');
+            const backFromAdminBtn = document.getElementById('backFromAdminBtn');
+
+            function openSelectedPortal() {
+                const val = (portalDropdown.value || '').trim();
+                if (!val) return;
+                if (val === 'user') return showUserLogin();
+                if (val === 'admin') return showAdminLogin();
+                // other portals navigate directly
+                window.location.href = `${val}.html`;
+            }
+
+            portalDropdown.addEventListener('change', () => {
+                // auto-open on select for faster flow
+                openSelectedPortal();
+            });
+            backFromUserBtn.addEventListener('click', () => showPortalSelect());
+            backFromAdminBtn.addEventListener('click', () => showPortalSelect());
+
+            // Setup login forms
+            document.getElementById('userLoginFormEl').addEventListener('submit', handleUserLogin);
+            document.getElementById('adminLoginFormEl').addEventListener('submit', handleAdminLogin);
+
+            // No dropdowns: users login with email, admin uses fixed username
+        }
+
+        function showPortalSelect() {
+            document.getElementById('portalSelect').classList.remove('hidden');
+            document.getElementById('userLoginForm').classList.add('hidden');
+            document.getElementById('adminLoginForm').classList.add('hidden');
+        }
+
+        function showUserLogin() {
+            document.getElementById('portalSelect').classList.add('hidden');
+            document.getElementById('userLoginForm').classList.remove('hidden');
+            document.getElementById('adminLoginForm').classList.add('hidden');
+        }
+
+        function showAdminLogin() {
+            document.getElementById('portalSelect').classList.add('hidden');
+            document.getElementById('userLoginForm').classList.add('hidden');
+            document.getElementById('adminLoginForm').classList.remove('hidden');
+        }
+
+        // No dropdown population required for email/password or fixed Admin username
+
+        function handleUserLogin(e) {
+            e.preventDefault();
+            const email = (document.getElementById('userEmail').value || '').trim().toLowerCase();
+            const pass = document.getElementById('userPassword').value;
+
+            if (!email) {
+                document.getElementById('userLoginMessage').textContent = 'Please enter your email';
+                return;
+            }
+
+            // Authenticate via backend
+            fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: pass })
+            }).then(r => r.json()).then(data => {
+                if (!data || !data.success) {
+                    document.getElementById('userLoginMessage').textContent = (data && data.message) ? data.message : 'Invalid credentials';
+                    return;
+                }
+
+                const u = data.user;
+                localStorage.setItem('userId', u.id);
+                localStorage.setItem('userName', u.full_name || u.username || u.email);
+                localStorage.setItem('userEmail', u.email);
+                localStorage.setItem('userDept', u.department || 'Unknown');
+                localStorage.setItem('isAdmin', (u.role || '').toLowerCase() === 'admin' ? 'true' : 'false');
+
+                window.location.href = 'system-clean.html';
+            }).catch(err => {
+                console.error('[AUTH] Login failed', err);
+                document.getElementById('userLoginMessage').textContent = 'Login error';
+            });
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const username = (document.getElementById('adminUsername').value || '').trim();
+            const pass = document.getElementById('adminPassword').value;
+
+            // Use backend auth; if username contains @ treat as email, otherwise try admin@maishabank.com
+            const email = username.includes('@') ? username : 'admin@maishabank.com';
+
+            fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: pass })
+            }).then(r => r.json()).then(data => {
+                if (!data || !data.success) {
+                    document.getElementById('adminLoginMessage').textContent = (data && data.message) ? data.message : 'Invalid credentials';
+                    return;
+                }
+
+                const u = data.user;
+                localStorage.setItem('userId', u.id);
+                localStorage.setItem('userName', u.full_name || u.username || u.email);
+                localStorage.setItem('userEmail', u.email);
+                localStorage.setItem('userDept', u.department || 'Admin');
+                localStorage.setItem('isAdmin', (u.role || '').toLowerCase() === 'admin' ? 'true' : 'false');
+
+                window.location.href = 'admin.html';
+            }).catch(err => {
+                console.error('[AUTH] Admin login failed', err);
+                document.getElementById('adminLoginMessage').textContent = 'Login error';
+            });
+        }
+    </script>
+</body>
+</html>

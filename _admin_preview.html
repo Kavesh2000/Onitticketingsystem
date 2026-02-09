@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Onit MFB</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-link {
+            transition: all 0.3s ease;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .sidebar-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid white;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        :root{
+            --bg-1:#0f172a; --accent:#3b82f6; --card:#ffffff;
+        }
+        body{ background: linear-gradient(180deg,#f8fafc 0%, #f1f5f9 100%); color:var(--bg-1); }
+        .card{ background:var(--card); border-radius:12px; box-shadow:0 10px 30px rgba(2,6,23,0.06); padding:1rem; }
+        .btn{ display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:10px; font-weight:600; cursor:pointer; }
+        .btn-primary{ background: linear-gradient(90deg,var(--accent),#2563eb); color:white; border:none; }
+        .btn-secondary{ background:#f1f5f9; color:var(--bg-1); border:none; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-blue-700 to-blue-900 text-white p-6">
+            <h1 class="text-2xl font-bold mb-8">Admin Panel</h1>
+            
+            <div class="mb-4 pb-4 border-b border-blue-600">
+                <p class="text-sm text-blue-100">Logged in as:</p>
+                <p id="userNameDisplay" class="font-semibold"></p>
+                <p id="userTypeDisplay" class="text-xs text-blue-200">Administrator</p>
+            </div>
+
+            <nav class="space-y-2">
+                <button onclick="switchSection('dashboard')" class="sidebar-link active w-full text-left px-4 py-3 rounded transition">
+                    📊 Dashboard
+                </button>
+                <button onclick="switchSection('tickets')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
+                    🎫 Manage Tickets
+                </button>
+                <button onclick="switchSection('leave')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
+                    🏖️ Manage Leave
+                </button>
+                <button onclick="switchSection('claims')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">💼 Manage Claims</button>
+                <button onclick="switchSection('users')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">👥 Manage Users</button>
+                <button onclick="switchSection('rights')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">🔐 Change of Rights</button>
+            </nav>
+
+            <div class="mt-8 pt-8 border-t border-blue-600">
+                <button onclick="logout()" class="w-full bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Dashboard -->
+            <div id="dashboard" class="content-section active">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Admin Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="card">
+                                        <h3 class="text-lg font-semibold mb-2">System Stats</h3>
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p class="text-sm text-gray-600">Total Tickets</p>
+                                                <p class="font-bold text-xl" id="totalTickets">0</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600">Open Tickets</p>
+                                                <p class="font-bold text-xl" id="openTickets">0</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600">In Progress</p>
+                                                <p class="font-bold text-xl" id="progressTickets">0</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600">Total Users</p>
+                                                <p class="font-bold text-xl" id="totalUsers">0</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card">
+                                        <h3 class="text-lg font-semibold mb-2">Performance</h3>
+                                        <div class="space-y-2">
+                                            <p class="text-sm text-gray-600">Resolved This Month: <span id="resolvedMonth" class="font-bold">0</span></p>
+                                            <p class="text-sm text-gray-600">Pending Leaves: <span id="pendingLeaves" class="font-bold">0</span></p>
+                                            <p class="text-sm text-gray-600">Avg Resolution Time: <span id="avgTime" class="font-bold">-</span></p>
+                                        </div>
+                                    </div>
+                                    <div class="card">
+                                        <h3 class="text-lg font-semibold mb-2">Admin Info</h3>
+                                        <div class="space-y-2">
+                                            <p class="text-sm text-gray-600">Name: <span id="infoName" class="font-semibold">-</span></p>
+                                            <p class="text-sm text-gray-600">Email: <span id="infoEmail" class="font-semibold">-</span></p>
+                                            <p class="text-sm text-gray-600">Role: <span id="infoRole" class="font-semibold">Administrator</span></p>
+                                        </div>
+                                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets Management -->
+            <div id="tickets" class="content-section">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Manage Tickets</h2>
+                    
+                    <!-- Tickets List -->
+                    <div class="card overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Ticket ID</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Assigned</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">User</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Subject</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Priority</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsList" class="divide-y">
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Management -->
+            <div id="leave" class="content-section">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Manage Leave Requests</h2>
+                    
+                    <!-- Leave Requests List -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden mb-8">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Request ID</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">User</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Days</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Start Date</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">End Date</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Resume Date</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                                            <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                                        </tr>
+                                </thead>
+                                <tbody id="leaveList" class="divide-y">
+                                    <tr>
+                                        <td colspan="10" class="px-6 py-4 text-center text-gray-500">No leave requests</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Leave Balances Management -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-2xl font-semibold">Leave Balances (All Users)</h3>
+                            <button onclick="openBalanceResetForm()" class="btn btn-primary">⟲ Reset Annual Balances</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gradient-to-r from-cyan-600 to-cyan-800 text-white">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-bold">👤 User</th>
+                                        <th class="px-6 py-3 text-left text-sm font-bold">📧 Email</th>
+                                        <th class="px-6 py-3 text-left text-sm font-bold">🏖️ Annual</th>
+                                        <th class="px-6 py-3 text-left text-sm font-bold">🏥 Sick</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Personal</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveBalancesTable" class="divide-y">
+                                    <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No data</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Claims Management -->
+            <div id="claims" class="content-section">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Manage Expense Claims</h2>
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Claim ID</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">User</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Amount</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Approval Status</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="claimsListAdmin" class="divide-y">
+                                    <tr>
+                                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">No claims</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Claim Details Modal -->
+            <div id="claimModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">Claim Details</h3>
+                        <button onclick="closeClaimModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div id="claimDetailsContent" class="space-y-6">
+                        <!-- Claim Information -->
+                        <div class="border-b pb-4">
+                            <h4 class="font-semibold mb-3 text-lg">Claim Information</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-sm text-gray-600">Claim ID</p>
+                                    <p id="modalClaimId" class="font-semibold text-lg">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Date Submitted</p>
+                                    <p id="modalClaimDate" class="font-semibold">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Claimant</p>
+                                    <p id="modalClaimant" class="font-semibold">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Email</p>
+                                    <p id="modalClaimEmail" class="font-semibold">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Type</p>
+                                    <p id="modalClaimType" class="font-semibold">-</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-600">Amount</p>
+                                    <p id="modalClaimAmount" class="font-semibold">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="border-b pb-4">
+                            <h4 class="font-semibold mb-2">Description</h4>
+                            <p id="modalClaimDescription" class="text-gray-700 p-3 bg-gray-50 rounded">-</p>
+                        </div>
+                        
+                        <!-- Approval Status -->
+                        <div class="border-b pb-4">
+                            <h4 class="font-semibold mb-3 text-lg">Approval Status</h4>
+                            <div class="mb-3">
+                                <p class="text-sm text-gray-600">Current Status</p>
+                                <p id="modalApprovalStatus" class="px-3 py-2 rounded font-semibold inline-block bg-yellow-100 text-yellow-800">-</p>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">Approval Progress</p>
+                            <div id="modalApprovalProgress" class="space-y-2">
+                                <!-- Approval steps will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex gap-2 justify-end">
+                        <button onclick="closeClaimModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Close</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Leave Balance Modal -->
+            <div id="leaveBalanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white p-8 rounded-lg shadow-lg max-w-xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold">Edit Leave Balance</h3>
+                        <button onclick="closeLeaveBalanceModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div id="leaveBalanceContent" class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-600">User</p>
+                            <p id="balanceModalUserName" class="font-semibold text-lg">-</p>
+                            <p id="balanceModalUserEmail" class="text-gray-600">-</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="text-sm font-medium">Annual Leave Days</label>
+                                <input id="balanceAnnual" type="number" min="0" class="w-full p-2 border rounded mt-1" />
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium">Sick Leave Days</label>
+                                <input id="balanceSick" type="number" min="0" class="w-full p-2 border rounded mt-1" />
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium">Personal Leave Days</label>
+                                <input id="balancePersonal" type="number" min="0" class="w-full p-2 border rounded mt-1" />
+                            </div>
+                        </div>
+
+                        <div id="deductionHistory" class="bg-gray-50 p-4 rounded">
+                            <p class="font-semibold text-sm mb-2">Recent Leave Deductions</p>
+                            <div id="deductionList" class="space-y-2 text-sm">
+                                <p class="text-gray-500">No deductions recorded</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex gap-2 justify-end">
+                        <button onclick="closeLeaveBalanceModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Cancel</button>
+                        <button onclick="saveLeaveBalance()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reset Annual Balances Modal -->
+            <div id="balanceResetModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
+                    <h3 class="text-2xl font-bold mb-4">Reset Annual Leave Balances</h3>
+                    
+                    <div class="space-y-4 mb-6">
+                        <p class="text-gray-700">This will reset the Annual Leave balance for all users to a specified amount.</p>
+                        <div>
+                            <label class="text-sm font-medium">Annual Leave Days (for all users)</label>
+                            <input id="resetAnnualDays" type="number" min="0" value="21" class="w-full p-2 border rounded mt-1" />
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-200 p-3 rounded">
+                            <p class="text-sm font-semibold text-yellow-800">⚠️ Warning: This action will reset all users' annual leave to this amount.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-2 justify-end">
+                        <button onclick="closeBalanceResetModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded">Cancel</button>
+                        <button onclick="confirmResetBalances()" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded">Reset All Balances</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Users Management -->
+            <div id="users" class="content-section">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Manage Users</h2>
+                    <div class="mb-4">
+                        <button onclick="showNewUserForm()" class="btn btn-primary">+ New User</button>
+                        <button onclick="seedUsersFromBackend()" class="btn btn-secondary ml-2">Seed Initial Users</button>
+                    </div>
+                    <div id="newUserForm" class="hidden card mb-6">
+                        <h3 class="font-semibold mb-3">Create / Edit User</h3>
+                        <form id="userForm" class="space-y-3">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-sm font-medium">Full Name</label>
+                                    <input id="userFullName" class="w-full p-2 border rounded mt-1" required />
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Email</label>
+                                    <input id="userEmailInput" type="email" class="w-full p-2 border rounded mt-1" required />
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-sm font-medium">Username</label>
+                                    <input id="userUsernameInput" class="w-full p-2 border rounded mt-1" placeholder="auto-generated if empty" />
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Department</label>
+                                    <select id="userDeptInput" class="w-full p-2 border rounded mt-1" required>
+                                        <option value="">Select Department</option>
+                                        <option value="ICT">ICT</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Branch">Branch</option>
+                                        <option value="Customer Service">Customer Service</option>
+                                        <option value="Admin">Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-sm font-medium">Role</label>
+                                    <select id="userTypeInput" class="w-full p-2 border rounded mt-1" required>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Finance Officer">Finance Officer</option>
+                                        <option value="ICT">ICT</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Customer Service">Customer Service</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Password</label>
+                                    <input id="userPasswordInput" type="password" class="w-full p-2 border rounded mt-1" placeholder="Default: Password123!" />
+                                </div>
+                            </div>
+                            <div class="flex gap-2 justify-end">
+                                <button type="submit" class="btn btn-primary">Save</button>
+                                <button type="button" onclick="hideNewUserForm()" class="btn btn-secondary">Cancel</button>
+                            </div>
+                            <input type="hidden" id="userEditId" />
+                        </form>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">ID</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Name</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Department</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersList" class="divide-y">
+                                    <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No users</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Change of Rights -->
+            <div id="rights" class="content-section">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Change of Rights</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Assign Role -->
+                        <div class="card">
+                            <h3 class="font-semibold text-lg mb-4">Assign Role to User</h3>
+                            <form id="changeRightsForm" class="space-y-4">
+                                <div>
+                                    <label class="text-sm font-medium">Select User</label>
+                                    <select id="changeRightsUser" class="w-full p-2 border rounded mt-1" required>
+                                        <option value="">Select user...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-sm font-medium">Role to Assign</label>
+                                    <select id="changeRightsRole" class="w-full p-2 border rounded mt-1" required>
+                                        <option value="">Select role...</option>
+                                        <option value="Finance Officer">Finance Officer</option>
+                                        <option value="Head of Finance">Head of Finance</option>
+                                        <option value="Teller">Teller</option>
+                                        <option value="Operations">Operations</option>
+                                        <option value="Branch Manager">Branch Manager</option>
+                                        <option value="ICT Officer">ICT Officer</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full btn btn-primary">Assign Role</button>
+                            </form>
+                        </div>
+                        
+                        <!-- User Roles List -->
+                        <div class="card">
+                            <h3 class="font-semibold text-lg mb-4">User Roles</h3>
+                            <div id="userRolesList" class="space-y-3">
+                                <p class="text-gray-500">Loading users...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Role Change History -->
+                    <div class="card mt-6">
+                        <h3 class="font-semibold text-lg mb-4">Role Change History</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gradient-to-r from-indigo-600 to-indigo-800 text-white">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-bold">📧 User</th>
+                                        <th class="px-4 py-2 text-left font-bold">👨‍💼 New Role</th>
+                                        <th class="px-4 py-2 text-left font-bold">📅 Assigned Date</th>
+                                        <th class="px-4 py-2 text-left font-bold">👤 Assigned By</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="roleChangeHistoryTable" class="divide-y">
+                                    <tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">No role changes yet</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load data for specific sections
+            if (sectionId === 'rights') {
+                loadChangeRightsUsers();
+            }
+        }
+
+        function logout() {
+            // Clear only session keys so admin/user data remains persisted
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('pendingUserEmail');
+            window.location.href = 'index.html';
+        }
+
+        function pushSentEmail(to, subject, body){ const sent = JSON.parse(localStorage.getItem('sentEmails')||'[]'); sent.push({to,subject,body,sentAt:new Date().toISOString()}); localStorage.setItem('sentEmails', JSON.stringify(sent)); }
+
+        function openAdminModal(action, ticketId){
+            // Reuse system modal but namespaced for admin; populate and show
+            const modal = document.getElementById('ticketModal');
+            if (!modal) return; // ensure modal exists
+            // use same global functions in system-clean modal
+            // set action via openTicketModal if available
+            try {
+                openTicketModal(action, ticketId);
+            } catch(e){
+                // fallback: prompt
+                if(action === 'progress') approveTicketImmediate(ticketId, action);
+                else {
+                    const notes = prompt('Notes (optional):');
+                    approveTicketImmediate(ticketId, action, notes);
+                }
+            }
+        }
+
+        function approveTicketImmediate(ticketId, action, notes){
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const ticket = tickets.find(t => t.id === ticketId);
+            if (!ticket) return;
+            const actorId = localStorage.getItem('userId');
+            const actor = employees.find(e => e.id === actorId) || { name: localStorage.getItem('userName') };
+            if (action === 'progress') ticket.status = 'In Progress';
+            else if (action === 'resolve') { ticket.status = 'Resolved'; ticket.resolvedAt = new Date().toISOString(); ticket.resolvedBy = actorId; ticket.resolvedByName = actor.name; }
+            else if (action === 'close') { ticket.status = 'Closed'; ticket.closedAt = new Date().toISOString(); ticket.closedBy = actorId; ticket.closedByName = actor.name; }
+            ticket.history = ticket.history || [];
+            ticket.history.push({ action: action, by: actorId, byName: actor.name, at: new Date().toISOString(), notes: notes || '' });
+            if (notes) ticket.resolutionNotes = (ticket.resolutionNotes||'') + '\n' + notes;
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            try { pushSentEmail(ticket.email, `Your ticket ${ticket.id} ${ticket.status}`, notes || ''); } catch(e){}
+            if (ticket.assignedTo) try { pushSentEmail((employees.find(e=>e.id===ticket.assignedTo)||{}).email||'', `Ticket ${ticket.id} ${ticket.status}`, notes || ''); } catch(e){}
+            loadTickets(); updateStats();
+        }
+
+        function approveLeave(leaveId, approved) {
+            const requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const request = requests.find(r => r.id === leaveId);
+            if (request) {
+                const prevStatus = request.status;
+                request.status = approved ? 'Approved' : 'Rejected';
+                // If rejecting, capture a reason from the admin
+                if (!approved && prevStatus === 'Pending') {
+                    const reason = prompt('Provide a reason for rejecting this leave request:');
+                    request.rejectReason = reason || 'No reason provided';
+                    request.rejectedAt = new Date().toISOString();
+                    request.rejectedBy = localStorage.getItem('userName') || 'Admin';
+                }
+                // Track approval timestamp
+                if (approved && prevStatus === 'Pending') {
+                    request.approvedAt = new Date().toISOString();
+                    request.approvedBy = localStorage.getItem('userName') || 'Admin';
+                }
+                localStorage.setItem('leaveRequests', JSON.stringify(requests));
+                // If approving and it was previously pending, deduct days from employee balance
+                if (approved && prevStatus === 'Pending') {
+                    try {
+                        const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+                        const emp = employees.find(e => (e.email||'').toLowerCase() === (request.email||'').toLowerCase());
+                        if (emp) {
+                            emp.leaveBalances = emp.leaveBalances || { annual:0, sick:0, personal:0 };
+                            const typeKey = (request.type || '').toLowerCase();
+                            // Map common variants
+                            const key = typeKey === 'annual' || typeKey === 'annual leave' ? 'annual' : (typeKey === 'sick' ? 'sick' : (typeKey === 'personal' ? 'personal' : typeKey));
+                            const deduct = parseFloat(request.days) || 0;
+                            if (typeof emp.leaveBalances[key] === 'number') {
+                                emp.leaveBalances[key] = Math.max(0, emp.leaveBalances[key] - deduct);
+                            } else {
+                                // initialize if missing
+                                emp.leaveBalances[key] = Math.max(0, -deduct);
+                            }
+                            localStorage.setItem('employees', JSON.stringify(employees));
+                        }
+                    } catch (e) {
+                        console.error('Failed to deduct leave balance', e);
+                    }
+                }
+                loadLeaveRequests();
+                loadUsers();
+                loadLeaveBalances();
+            }
+        }
+
+        function approveClaim(claimId, approved) {
+            const claims = JSON.parse(localStorage.getItem('claims') || '[]');
+            const claim = claims.find(c => c.id === claimId);
+            if (claim) {
+                claim.status = approved ? 'Approved' : 'Rejected';
+                localStorage.setItem('claims', JSON.stringify(claims));
+                loadClaims();
+            }
+        }
+
+        // --- Leave Balance Management Functions ---
+        function loadLeaveBalances() {
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const tbody = document.getElementById('leaveBalancesTable');
+            
+            if (!employees || employees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No users</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = employees.map(emp => {
+                const bal = emp.leaveBalances || { annual: 0, sick: 0, personal: 0 };
+                // Count recent approvals for this employee
+                const approvedRequests = leaveRequests.filter(r => r.email === emp.email && r.status === 'Approved');
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-semibold">${emp.name || ''}</td>
+                        <td class="px-6 py-4">${emp.email || ''}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded font-semibold ${bal.annual <= 5 ? 'bg-red-100 text-red-800' : bal.annual <= 10 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.annual || 0}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded font-semibold ${bal.sick <= 2 ? 'bg-red-100 text-red-800' : bal.sick <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.sick || 0}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-3 py-1 rounded font-semibold ${bal.personal <= 2 ? 'bg-red-100 text-red-800' : bal.personal <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.personal || 0}</span>
+                        </td>
+                        <td class="px-6 py-4 space-x-2">
+                            <button onclick="openLeaveBalanceModal('${emp.id}')" class="text-blue-600 hover:underline text-sm">Edit</button>
+                            <button onclick="showApprovedRequestsForUser('${emp.email}')" class="text-gray-600 hover:underline text-sm">History (${approvedRequests.length})</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openLeaveBalanceModal(empId) {
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const emp = employees.find(e => e.id === empId);
+            
+            if (!emp) return;
+            
+            const bal = emp.leaveBalances || { annual: 0, sick: 0, personal: 0 };
+            
+            document.getElementById('balanceModalUserName').textContent = emp.name || '';
+            document.getElementById('balanceModalUserEmail').textContent = emp.email || '';
+            document.getElementById('balanceAnnual').value = bal.annual || 0;
+            document.getElementById('balanceSick').value = bal.sick || 0;
+            document.getElementById('balancePersonal').value = bal.personal || 0;
+            
+            // Show deduction history
+            const approvedRequests = leaveRequests.filter(r => r.email === emp.email && r.status === 'Approved');
+            const deductionList = document.getElementById('deductionList');
+            
+            if (approvedRequests.length === 0) {
+                deductionList.innerHTML = '<p class="text-gray-500">No deductions recorded</p>';
+            } else {
+                deductionList.innerHTML = approvedRequests.slice(-5).reverse().map(req => `
+                    <div class="bg-white p-2 rounded border-l-4 border-green-500">
+                        <p class="font-semibold text-sm">${req.type}: -${req.days} days</p>
+                        <p class="text-xs text-gray-600">${new Date(req.approvedAt || req.timestamp).toLocaleDateString()}</p>
+                    </div>
+                `).join('');
+            }
+            
+            // Store the empId for later save
+            document.getElementById('leaveBalanceModal').dataset.empId = empId;
+            document.getElementById('leaveBalanceModal').classList.remove('hidden');
+        }
+
+        function closeLeaveBalanceModal() {
+            document.getElementById('leaveBalanceModal').classList.add('hidden');
+        }
+
+        function saveLeaveBalance() {
+            const empId = document.getElementById('leaveBalanceModal').dataset.empId;
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const emp = employees.find(e => e.id === empId);
+            
+            if (!emp) return;
+            
+            emp.leaveBalances = {
+                annual: parseInt(document.getElementById('balanceAnnual').value) || 0,
+                sick: parseInt(document.getElementById('balanceSick').value) || 0,
+                personal: parseInt(document.getElementById('balancePersonal').value) || 0
+            };
+            
+            localStorage.setItem('employees', JSON.stringify(employees));
+            closeLeaveBalanceModal();
+            loadLeaveBalances();
+            alert('Leave balance updated successfully!');
+        }
+
+        function showApprovedRequestsForUser(email) {
+            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const approvedRequests = leaveRequests.filter(r => r.email === email && r.status === 'Approved');
+            
+            if (approvedRequests.length === 0) {
+                alert('No approved leave requests for this user.');
+                return;
+            }
+            
+            let summary = 'Approved Leave Requests:\n\n';
+            const totals = { annual: 0, sick: 0, personal: 0 };
+            
+            approvedRequests.forEach(req => {
+                const type = (req.type || '').toLowerCase();
+                const key = type === 'annual leave' ? 'annual' : (type === 'sick' ? 'sick' : (type === 'personal' ? 'personal' : type));
+                totals[key] = (totals[key] || 0) + parseFloat(req.days || 0);
+                summary += `${req.type}: ${req.days} days (${new Date(req.startDate).toLocaleDateString()} - ${new Date(req.endDate).toLocaleDateString()})\n`;
+            });
+            
+            summary += '\n--- TOTAL DEDUCTED ---\n';
+            summary += `Annual: ${totals.annual} days\n`;
+            summary += `Sick: ${totals.sick} days\n`;
+            summary += `Personal: ${totals.personal} days`;
+            
+            alert(summary);
+        }
+
+        function openBalanceResetForm() {
+            document.getElementById('balanceResetModal').classList.remove('hidden');
+        }
+
+        function closeBalanceResetModal() {
+            document.getElementById('balanceResetModal').classList.add('hidden');
+        }
+
+        function confirmResetBalances() {
+            const days = parseInt(document.getElementById('resetAnnualDays').value) || 21;
+            
+            if (!confirm(`Reset annual leave for ALL users to ${days} days? This cannot be undone.`)) {
+                return;
+            }
+            
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            employees.forEach(emp => {
+                emp.leaveBalances = emp.leaveBalances || { annual: 0, sick: 0, personal: 0 };
+                emp.leaveBalances.annual = days;
+            });
+            
+            localStorage.setItem('employees', JSON.stringify(employees));
+            closeBalanceResetModal();
+            loadLeaveBalances();
+            alert(`Annual leave balances reset to ${days} days for all users!`);
+        }
+
+        window.addEventListener('load', function() {
+            if (localStorage.getItem('isAdmin') !== 'true') {
+                window.location.href = 'index.html';
+                return;
+            }
+            initDashboard();
+            // Auto-seed departments for existing users who lack one (so assignment works immediately)
+            seedDepartmentsIfMissing();
+            loadTickets();
+            loadLeaveRequests();
+            loadLeaveBalances();
+            loadClaims();
+            loadUsers();
+        });
+
+        function initDashboard() {
+            const userName = localStorage.getItem('userName') || 'Admin';
+            const userEmail = localStorage.getItem('userEmail') || 'N/A';
+            document.getElementById('userNameDisplay').textContent = userName;
+            document.getElementById('infoName').textContent = userName;
+            document.getElementById('infoEmail').textContent = userEmail;
+            updateStats();
+        }
+
+        // Numeric auto-increment ID helper (shared)
+        function getNextId(key){
+            const next = JSON.parse(localStorage.getItem('nextIds') || '{}');
+            if (!next[key]) next[key] = 1;
+            const id = next[key]++;
+            localStorage.setItem('nextIds', JSON.stringify(next));
+            return String(id);
+        }
+
+        function updateStats() {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const claims = JSON.parse(localStorage.getItem('claims') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+
+            document.getElementById('totalTickets').textContent = tickets.length;
+            document.getElementById('openTickets').textContent = tickets.filter(t => t.status === 'Open').length;
+            document.getElementById('progressTickets').textContent = tickets.filter(t => t.status === 'In Progress').length;
+            document.getElementById('totalUsers').textContent = employees.filter(e => e.type === 'user').length;
+            document.getElementById('resolvedMonth').textContent = tickets.filter(t => t.status === 'Resolved').length;
+            document.getElementById('pendingLeaves').textContent = leaveRequests.filter(r => r.status === 'Pending').length;
+            // pending claims
+            const pendingClaims = claims.filter(c => c.status === 'Pending').length;
+            const pendingEl = document.getElementById('pendingClaims');
+            if (pendingEl) pendingEl.textContent = pendingClaims;
+        }
+
+        function loadTickets() {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const tbody = document.getElementById('ticketsList');
+            
+            if (tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = tickets.map(ticket => {
+                const user = employees.find(e => e.email === ticket.email);
+                const displayName = user ? user.name : (ticket.name || ticket.email || 'Unknown');
+                const assignee = employees.find(e => e.id === ticket.assignedTo);
+                const assigneeName = assignee ? assignee.name : (ticket.assignedToName || 'Unassigned');
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-semibold">${ticket.id}</td>
+                        <td class="px-6 py-4">${assigneeName}</td>
+                        <td class="px-6 py-4">${displayName}</td>
+                        <td class="px-6 py-4">${ticket.subject || ticket.type}</td>
+                        <td class="px-6 py-4">${ticket.type}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-sm font-semibold ${getPriorityClass(ticket.priority)}">
+                                ${ticket.priority}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-sm font-semibold ${getStatusClass(ticket.status)}">
+                                ${ticket.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 space-x-2">
+                            <button onclick="viewTicketDetails('${ticket.id}')" class="text-blue-600 hover:underline text-sm font-semibold">View</button>
+                            <button onclick="openAdminModal('progress','${ticket.id}')" class="text-blue-600 hover:underline text-sm">Progress</button>
+                            <button onclick="openAdminModal('resolve','${ticket.id}')" class="text-green-600 hover:underline text-sm">Resolve</button>
+                            <button onclick="openAdminModal('close','${ticket.id}')" class="text-gray-600 hover:underline text-sm">Close</button>
+                            <button onclick="openAdminModal('comment','${ticket.id}')" class="text-gray-600 hover:underline text-sm">Comment</button>
+                            <button onclick="openAdminModal('reassign','${ticket.id}')" class="text-indigo-600 hover:underline text-sm">Reassign</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function loadLeaveRequests() {
+            const requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const tbody = document.getElementById('leaveList');
+            
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="px-6 py-4 text-center text-gray-500">No leave requests</td></tr>';
+                return;
+            }
+
+            function fmt(d) { try { return d ? new Date(d).toLocaleDateString() : ''; } catch(e){ return d||''; } }
+
+            tbody.innerHTML = requests.map(req => {
+                const user = employees.find(e => e.email === req.email);
+                const displayName = user ? user.name : (req.name || req.email || 'Unknown');
+                const displayEmail = user ? user.email : (req.email || '');
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-semibold">${req.id}</td>
+                        <td class="px-6 py-4">${displayName}</td>
+                        <td class="px-6 py-4">${displayEmail}</td>
+                        <td class="px-6 py-4">${req.type}</td>
+                        <td class="px-6 py-4">${req.days}</td>
+                        <td class="px-6 py-4">${fmt(req.startDate)}</td>
+                        <td class="px-6 py-4">${fmt(req.endDate)}</td>
+                        <td class="px-6 py-4">${fmt(req.resumeDate)}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-sm font-semibold ${getRequestStatusClass(req.status)}">
+                                ${req.status}
+                            </span>
+                            ${req.status === 'Rejected' && req.rejectReason ? `<div class="text-xs text-red-600 mt-1">Reason: ${req.rejectReason}</div>` : ''}
+                        </td>
+                        <td class="px-6 py-4 space-x-2">
+                            ${req.status === 'Pending' ? `
+                                <button onclick="approveLeave('${req.id}', true)" class="text-green-600 hover:underline text-sm">Approve</button>
+                                <button onclick="approveLeave('${req.id}', false)" class="text-red-600 hover:underline text-sm">Reject</button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function loadClaims() {
+            const expenseClaims = JSON.parse(localStorage.getItem('expenseClaims') || '[]');
+            const workflows = JSON.parse(localStorage.getItem('approvalWorkflows') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const tbody = document.getElementById('claimsListAdmin');
+            
+            if (expenseClaims.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">No claims</td></tr>';
+                return;
+            }
+            
+            function fmt(d){ try{ return d ? new Date(d).toLocaleDateString() : ''; } catch(e){ return d||''; } }
+            
+            tbody.innerHTML = expenseClaims.map(claim => {
+                const user = employees.find(e => e.email === claim.email);
+                const displayName = user ? user.name : (claim.claimant || claim.email || 'Unknown');
+                const displayEmail = claim.email || '';
+                
+                // Find workflow for this claim
+                const workflow = workflows.find(wf => wf.requestId === claim.id);
+                let approvalStatus = 'SUBMITTED';
+                let approvalProgress = '';
+                
+                if (workflow) {
+                    approvalStatus = workflow.status;
+                    const currentStep = workflow.steps[workflow.currentStep];
+                    if (currentStep) {
+                        approvalProgress = `Awaiting: ${currentStep.role}`;
+                    }
+                }
+                
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 font-semibold">${claim.id}</td>
+                        <td class="px-6 py-4">${displayName}</td>
+                        <td class="px-6 py-4">${displayEmail}</td>
+                        <td class="px-6 py-4">${claim.type}</td>
+                        <td class="px-6 py-4">₦${parseFloat(claim.amount).toFixed(2)}</td>
+                        <td class="px-6 py-4">${fmt(claim.timestamp)}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm">
+                                <span class="px-2 py-1 rounded font-semibold ${approvalStatus === 'approved' ? 'bg-green-100 text-green-800' : approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">${approvalStatus.toUpperCase()}</span>
+                                <div class="text-xs text-gray-600 mt-1">${approvalProgress}</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            <button onclick="viewClaim('${claim.id}')" class="text-blue-600 hover:underline font-semibold">View</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function viewClaim(claimId) {
+            const expenseClaims = JSON.parse(localStorage.getItem('expenseClaims') || '[]');
+            const workflows = JSON.parse(localStorage.getItem('approvalWorkflows') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            
+            const claim = expenseClaims.find(c => c.id === claimId);
+            if (!claim) {
+                alert('Claim not found');
+                return;
+            }
+            
+            // Find workflow for this claim
+            const workflow = workflows.find(wf => wf.requestId === claim.id);
+            
+            // Format date
+            function fmt(d) { 
+                try { 
+                    return d ? new Date(d).toLocaleString() : '-'; 
+                } catch(e) { 
+                    return d || '-'; 
+                } 
+            }
+            
+            // Populate modal
+            document.getElementById('modalClaimId').textContent = claim.id;
+            document.getElementById('modalClaimDate').textContent = fmt(claim.timestamp);
+            document.getElementById('modalClaimant').textContent = claim.claimant || '-';
+            document.getElementById('modalClaimEmail').textContent = claim.email || '-';
+            document.getElementById('modalClaimType').textContent = claim.type || '-';
+            document.getElementById('modalClaimAmount').textContent = '₦' + parseFloat(claim.amount).toFixed(2);
+            document.getElementById('modalClaimDescription').textContent = claim.description || 'No description';
+            
+            // Show approval status
+            let approvalStatus = 'SUBMITTED';
+            if (workflow) {
+                approvalStatus = workflow.status;
+            }
+            
+            const statusClass = approvalStatus === 'approved' ? 'bg-green-100 text-green-800' : 
+                               approvalStatus === 'rejected' ? 'bg-red-100 text-red-800' : 
+                               'bg-yellow-100 text-yellow-800';
+            document.getElementById('modalApprovalStatus').className = 'px-3 py-2 rounded font-semibold inline-block ' + statusClass;
+            document.getElementById('modalApprovalStatus').textContent = approvalStatus.toUpperCase();
+            
+            // Show approval progress
+            if (workflow) {
+                const progressHtml = workflow.steps.map((step, idx) => {
+                    const isCurrentStep = workflow.currentStep === idx;
+                    const icon = step.status === 'approved' ? '✅' : 
+                                step.status === 'rejected' ? '❌' : 
+                                step.status === 'pending' ? '⏳' : '⏸️';
+                    const bgColor = step.status === 'approved' ? 'bg-green-50' : 
+                                   step.status === 'rejected' ? 'bg-red-50' : 
+                                   isCurrentStep ? 'bg-yellow-50' : 'bg-gray-50';
+                    
+                    return `
+                        <div class="p-3 rounded border ${bgColor}">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">${icon}</span>
+                                <span class="font-semibold">${step.stepId}</span>
+                                <span class="text-sm text-gray-600">(${step.role})</span>
+                            </div>
+                            <div class="text-sm text-gray-700">Status: <span class="font-semibold">${step.status}</span></div>
+                            ${step.approvedBy ? `<div class="text-sm text-gray-600">Approved by: ${step.approvedBy}</div>` : ''}
+                            ${step.approvedAt ? `<div class="text-xs text-gray-500">${fmt(step.approvedAt)}</div>` : ''}
+                            ${step.rejectionReason ? `<div class="text-sm text-red-700 mt-1">Rejection: ${step.rejectionReason}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                document.getElementById('modalApprovalProgress').innerHTML = progressHtml;
+            } else {
+                document.getElementById('modalApprovalProgress').innerHTML = '<p class="text-gray-500">No workflow found</p>';
+            }
+            
+            // Show modal
+            document.getElementById('claimModal').classList.remove('hidden');
+        }
+        
+        function closeClaimModal() {
+            document.getElementById('claimModal').classList.add('hidden');
+        }
+
+        function adminCommentTicket(ticketId){
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const t = tickets.find(x=>x.id===ticketId);
+            if(!t) { alert('Ticket not found'); return; }
+            const actorId = localStorage.getItem('userId');
+            const actor = employees.find(e=>e.id===actorId) || { name: localStorage.getItem('userName') };
+            const note = prompt('Admin comment:');
+            if(!note) return;
+            t.history = t.history || [];
+            t.history.push({ action: 'comment', by: actorId, byName: actor.name, at: new Date().toISOString(), notes: note });
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            try { pushSentEmail(t.email, 'Admin comment on ticket '+t.id, note); } catch(e){}
+            loadTickets();
+            alert('Comment added.');
+        }
+
+        function reassignTicket(ticketId){
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const t = tickets.find(x=>x.id===ticketId);
+            if(!t) { alert('Ticket not found'); return; }
+            const list = employees.map(e=> `${e.id}: ${e.name} (${e.email}) [${e.department||''}]`).join('\n');
+            const pick = prompt('Choose assignee by entering ID or email:\n\n' + list);
+            if(!pick) return;
+            let assignee = employees.find(e=>e.id===pick) || employees.find(e=> (e.email||'').toLowerCase() === pick.toLowerCase());
+            if(!assignee) { alert('Assignee not found'); return; }
+            t.assignedTo = assignee.id;
+            t.assignedToName = assignee.name;
+            t.assignedDept = assignee.department || t.department || '';
+            t.assignedAt = new Date().toISOString();
+            t.history = t.history || [];
+            t.history.push({ action: 'reassigned', by: localStorage.getItem('userId'), byName: localStorage.getItem('userName'), at: new Date().toISOString(), notes: 'Reassigned to '+assignee.name });
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            try { pushSentEmail(assignee.email, 'Ticket assigned: '+t.id, 'You were assigned ticket '+t.id); } catch(e){}
+            loadTickets();
+            alert('Ticket reassigned to ' + assignee.name);
+        }
+
+        function reopenTicket(ticketId){
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const t = tickets.find(x=>x.id===ticketId);
+            if(!t) { alert('Ticket not found'); return; }
+            const reason = prompt('Reason for reopening (optional):');
+            t.status = 'Open';
+            t.history = t.history || [];
+            t.history.push({ action: 'reopened', by: localStorage.getItem('userId'), byName: localStorage.getItem('userName'), at: new Date().toISOString(), notes: reason || '' });
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+            loadTickets();
+            alert('Ticket reopened.');
+        }
+
+        // Users management
+        function showNewUserForm(){
+            document.getElementById('userForm').reset();
+            document.getElementById('userEditId').value = '';
+            document.getElementById('newUserForm').classList.remove('hidden');
+        }
+        function hideNewUserForm(){ document.getElementById('newUserForm').classList.add('hidden'); }
+
+        function loadUsers(){
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const tbody = document.getElementById('usersList');
+            if (!employees || employees.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No users</td></tr>'; return; }
+            tbody.innerHTML = employees.map(e => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">${e.id || ''}</td>
+                    <td class="px-6 py-4">${e.name || ''}</td>
+                    <td class="px-6 py-4">${e.email || ''}</td>
+                    <td class="px-6 py-4">${e.department || ''}</td>
+                    <td class="px-6 py-4">${e.type || 'user'}</td>
+                    <td class="px-6 py-4 space-x-2">
+                        <button onclick="editUser('${e.id}')" class="text-blue-600 hover:underline text-sm">Edit</button>
+                        <button onclick="deleteUser('${e.id}')" class="text-red-600 hover:underline text-sm">Delete</button>
+                        <button onclick="resetUserPassword('${e.id}')" class="text-indigo-600 hover:underline text-sm">Reset</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Also populate balances table
+            const balancesBody = document.getElementById('balancesTable');
+            if (!employees || employees.length === 0) {
+                balancesBody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No data</td></tr>';
+            } else {
+                balancesBody.innerHTML = employees.map(u => {
+                    const bal = u.leaveBalances || { annual: 0, sick: 0, personal: 0 };
+                    return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4">${u.name||''}</td>
+                            <td class="px-6 py-4">${u.email||''}</td>
+                            <td class="px-6 py-4">${bal.annual || 0}</td>
+                            <td class="px-6 py-4">${bal.sick || 0}</td>
+                            <td class="px-6 py-4">${bal.personal || 0}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        function editUser(id){
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const e = employees.find(x=>x.id===id);
+            if(!e) return; document.getElementById('userFullName').value = e.name||''; document.getElementById('userEmailInput').value = e.email||''; document.getElementById('userDeptInput').value = e.department||''; document.getElementById('userTypeInput').value = e.type||'user'; document.getElementById('userEditId').value = e.id||''; document.getElementById('newUserForm').classList.remove('hidden');
+        }
+
+        function deleteUser(id){
+            if(!confirm('Delete user '+id+'?')) return;
+            let employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            employees = employees.filter(e=>e.id!==id);
+            localStorage.setItem('employees', JSON.stringify(employees));
+            loadUsers(); updateStats();
+        }
+
+        document.getElementById('userForm').addEventListener('submit', function(e){
+            e.preventDefault();
+            const idField = document.getElementById('userEditId').value;
+            let employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const newId = idField || getNextId('employees');
+            const userObj = { id: newId, name: document.getElementById('userFullName').value.trim(), email: document.getElementById('userEmailInput').value.trim().toLowerCase(), department: document.getElementById('userDeptInput').value.trim(), type: document.getElementById('userTypeInput').value };
+            if (idField) {
+                employees = employees.map(x=> x.id===idField ? Object.assign(x, userObj) : x);
+            } else {
+                employees.push(userObj);
+            }
+            localStorage.setItem('employees', JSON.stringify(employees));
+            hideNewUserForm(); this.reset(); loadUsers(); updateStats(); alert('User saved.');
+        });
+
+        function resetUserPassword(id) {
+            let employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const u = employees.find(x => x.id === id);
+            if (!u) {
+                alert('User not found');
+                return;
+            }
+            const newPass = 'Welcome@123';
+            u.password = newPass;
+            u.passwordResetAt = new Date().toISOString();
+            // Force the user to change password at next login
+            u.mustChangePassword = true;
+            localStorage.setItem('employees', JSON.stringify(employees));
+            loadUsers();
+            updateStats();
+
+            // Save a sent-email record for auditing / inbox simulation
+            const sent = JSON.parse(localStorage.getItem('sentEmails') || '[]');
+            const subject = 'Your Onit MFB temporary password';
+            const body = `Hello ${u.name || ''},%0D%0A%0D%0AYour password has been reset by the administrator.%0D%0ATemporary password: ${newPass}%0D%0AYou will be required to change this password at your next login.%0D%0A%0D%0ARegards,%0D%0AOnit MFB Admin`;
+            sent.push({ to: u.email, subject: subject, body: decodeURIComponent(body), sentAt: new Date().toISOString() });
+            localStorage.setItem('sentEmails', JSON.stringify(sent));
+
+            // Try opening the user's default mail client with the notification (mailto)
+            try {
+                window.open(`mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent(subject)}&body=${body}`);
+            } catch (e) {
+                // ignore
+            }
+
+            alert('Password for ' + (u.name || u.email) + ' has been reset to:\n' + newPass + '\nAn email notification was created. Advise the user to change it after login.');
+        }
+
+        // Seed random departments for users who do not have one (for testing)
+        function seedDepartments(){
+            const departments = ['IT','Finance','HR','Support','Operations'];
+            let employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            if(!employees || employees.length===0){ alert('No users to seed.'); return; }
+            employees = employees.map(e => {
+                if(!e.department || (e.department||'').trim()===''){
+                    e.department = departments[Math.floor(Math.random()*departments.length)];
+                }
+                return e;
+            });
+            localStorage.setItem('employees', JSON.stringify(employees));
+            loadUsers();
+            updateStats();
+            alert('Departments seeded for users without departments.');
+        }
+
+        // Assign departments only to users missing a department (no alert)
+        function seedDepartmentsIfMissing(){
+            const departments = ['IT','Finance','HR','Support','Operations'];
+            let employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            if(!employees || employees.length===0) return;
+            let changed = false;
+            employees = employees.map(e => {
+                if(!e.department || (e.department||'').trim()===''){
+                    if ((e.type||'').toLowerCase() === 'admin') e.department = 'Operations';
+                    else e.department = departments[Math.floor(Math.random()*departments.length)];
+                    changed = true;
+                }
+                return e;
+            });
+            if (changed) {
+                localStorage.setItem('employees', JSON.stringify(employees));
+            }
+        }
+
+        function getPriorityClass(priority) {
+            const classes = {
+                'Critical': 'bg-red-200 text-red-800',
+                'High': 'bg-orange-200 text-orange-800',
+                'Medium': 'bg-yellow-200 text-yellow-800',
+                'Low': 'bg-green-200 text-green-800'
+            };
+            return classes[priority] || 'bg-gray-200 text-gray-800';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'Open': 'bg-blue-200 text-blue-800',
+                'In Progress': 'bg-purple-200 text-purple-800',
+                'Resolved': 'bg-green-200 text-green-800',
+                'Closed': 'bg-gray-200 text-gray-800'
+            };
+            return classes[status] || 'bg-gray-200 text-gray-800';
+        }
+
+        function getRequestStatusClass(status) {
+            const classes = {
+                'Pending': 'bg-yellow-200 text-yellow-800',
+                'Approved': 'bg-green-200 text-green-800',
+                'Rejected': 'bg-red-200 text-red-800'
+            };
+            return classes[status] || 'bg-gray-200 text-gray-800';
+        }
+        
+        // ===== CHANGE OF RIGHTS FUNCTIONS =====
+        function loadChangeRightsUsers() {
+            const userSelect = document.getElementById('changeRightsUser');
+            
+            // Fetch real users from backend
+            fetch('/api/users').then(r => r.json()).then(data => {
+                if (data && data.success && Array.isArray(data.users)) {
+                    const html = data.users.map(u => `<option value="${u.email}">${u.full_name} (Current: ${u.role})</option>`).join('');
+                    userSelect.innerHTML = '<option value="">Select user...</option>' + html;
+                } else {
+                    userSelect.innerHTML = '<option value="">No users</option>';
+                }
+            }).catch(e => {
+                console.warn('[RIGHTS] Failed to load users', e);
+                userSelect.innerHTML = '<option value="">No users</option>';
+            });
+            
+            loadUserRolesList();
+            loadRoleChangeHistory();
+        }
+        
+        function loadUserRolesList() {
+            // Fetch users from backend to show current roles
+            fetch('/api/users').then(r => r.json()).then(data => {
+                if (data && data.success && Array.isArray(data.users)) {
+                    if (data.users.length === 0) {
+                        document.getElementById('userRolesList').innerHTML = '<p class="text-gray-500">No users found</p>';
+                    } else {
+                        document.getElementById('userRolesList').innerHTML = data.users.map(u => `
+                            <div class="p-3 bg-gray-50 rounded border border-gray-200">
+                                <p class="font-semibold text-gray-800">${u.full_name}</p>
+                                <p class="text-sm text-gray-600">${u.email}</p>
+                                <p class="text-sm mt-2"><strong>Role:</strong> <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">${u.role}</span></p>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    document.getElementById('userRolesList').innerHTML = '<p class="text-gray-500">Failed to load users</p>';
+                }
+            }).catch(e => {
+                console.warn('[RIGHTS] Failed to load users', e);
+                document.getElementById('userRolesList').innerHTML = '<p class="text-gray-500">Failed to load users</p>';
+            });
+        }
+        
+        function loadRoleChangeHistory() {
+            const roleChanges = JSON.parse(localStorage.getItem('roleChangeHistory') || '[]');
+            const history = roleChanges.sort((a, b) => new Date(b.changedAt) - new Date(a.changedAt));
+            
+            if (history.length === 0) {
+                document.getElementById('roleChangeHistoryTable').innerHTML = '<tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">No role changes yet</td></tr>';
+            } else {
+                document.getElementById('roleChangeHistoryTable').innerHTML = history.map(change => `
+                    <tr>
+                        <td class="px-4 py-2">${change.userEmail}</td>
+                        <td class="px-4 py-2"><span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">${change.newRole}</span></td>
+                        <td class="px-4 py-2">${new Date(change.changedAt).toLocaleString()}</td>
+                        <td class="px-4 py-2">${change.changedBy}</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        document.getElementById('changeRightsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userEmail = document.getElementById('changeRightsUser').value;
+            const newRole = document.getElementById('changeRightsRole').value;
+            const adminEmail = localStorage.getItem('adminEmail') || 'Admin';
+            
+            if (!userEmail || !newRole) {
+                alert('Please select both user and role');
+                return;
+            }
+            
+            // Send to backend to update database
+            fetch('/api/users/update-role', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, role: newRole })
+            }).then(r => {
+                if (!r.ok) throw new Error('Server error: ' + r.status);
+                return r.json();
+            }).then(data => {
+                if (data.success) {
+                    // Record the change in history
+                    const roleChanges = JSON.parse(localStorage.getItem('roleChangeHistory') || '[]');
+                    roleChanges.push({
+                        id: 'RC-' + Date.now(),
+                        userEmail,
+                        newRole,
+                        changedAt: new Date().toISOString(),
+                        changedBy: adminEmail
+                    });
+                    localStorage.setItem('roleChangeHistory', JSON.stringify(roleChanges));
+                    
+                    alert(`Role assigned successfully! ${userEmail} is now a ${newRole}`);
+                    this.reset();
+                    loadChangeRightsUsers();
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to assign role'));
+                }
+            }).catch(e => {
+                console.error('[ERROR] Role assignment failed:', e);
+                alert('Error: ' + e.message);
+            });
+        });
+
+        // Ticket Details Modal
+        function viewTicketDetails(ticketId) {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const ticket = tickets.find(t => t.id === ticketId);
+            
+            if (!ticket) {
+                alert('Ticket not found');
+                return;
+            }
+
+            const creator = employees.find(e => e.email === ticket.email);
+            const assignee = employees.find(e => e.id === ticket.assignedTo);
+            
+            let modal = document.getElementById('ticketDetailsModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'ticketDetailsModal';
+                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+                modal.innerHTML = `
+                    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div class="sticky top-0 bg-gray-800 text-white p-6 flex justify-between items-center">
+                            <h2 class="text-2xl font-bold">Ticket Details</h2>
+                            <button onclick="document.getElementById('ticketDetailsModal').style.display='none'" class="text-2xl hover:text-gray-300">×</button>
+                        </div>
+                        <div id="ticketDetailsContent" class="p-6"></div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            let historyHtml = '';
+            if (ticket.history && ticket.history.length > 0) {
+                historyHtml = `
+                    <div class="mt-6 pt-6 border-t">
+                        <h3 class="text-lg font-bold mb-4 text-gray-800">Activity History</h3>
+                        <div class="space-y-3">
+                            ${ticket.history.map(h => `
+                                <div class="bg-gray-50 p-3 rounded border-l-4 border-blue-500">
+                                    <p class="font-semibold text-gray-800">${h.action.charAt(0).toUpperCase() + h.action.slice(1)}</p>
+                                    <p class="text-sm text-gray-600">By: ${h.byName}</p>
+                                    ${h.notes ? `<p class="text-sm text-gray-700 mt-1"><strong>Notes:</strong> ${h.notes}</p>` : ''}
+                                    <p class="text-xs text-gray-500 mt-1">${new Date(h.at).toLocaleString()}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('ticketDetailsContent').innerHTML = `
+                <div class="space-y-6">
+                    <!-- Header Info -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Ticket ID</p>
+                            <p class="text-xl font-bold text-gray-800">${ticket.id}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Status</p>
+                            <p class="inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusClass(ticket.status)}">${ticket.status}</p>
+                        </div>
+                    </div>
+
+                    <!-- Subject & Type -->
+                    <div>
+                        <p class="text-gray-500 text-sm">Subject</p>
+                        <p class="text-lg font-semibold text-gray-800">${ticket.subject || 'N/A'}</p>
+                    </div>
+
+                    <!-- Priority & Created Date -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-500 text-sm">Priority</p>
+                            <p class="inline-block px-3 py-1 rounded text-sm font-semibold ${getPriorityClass(ticket.priority)}">${ticket.priority || 'Low'}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-500 text-sm">Created Date</p>
+                            <p class="text-gray-800">${ticket.createdDate || new Date(ticket.timestamp).toLocaleDateString()}</p>
+                        </div>
+                    </div>
+
+                    <!-- Creator & Assignee -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded border border-blue-200">
+                            <p class="text-gray-500 text-sm font-semibold">Created By</p>
+                            <p class="font-semibold text-gray-800">${creator ? creator.name : ticket.name}</p>
+                            <p class="text-sm text-gray-600">${ticket.email}</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded border border-green-200">
+                            <p class="text-gray-500 text-sm font-semibold">Assigned To</p>
+                            <p class="font-semibold text-gray-800">${assignee ? assignee.name : 'Unassigned'}</p>
+                            ${assignee ? `<p class="text-sm text-gray-600">${assignee.email}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Department -->
+                    <div>
+                        <p class="text-gray-500 text-sm">Department</p>
+                        <p class="text-gray-800 font-semibold">${ticket.department || 'General'}</p>
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <p class="text-gray-500 text-sm mb-2">Description</p>
+                        <div class="bg-gray-50 p-4 rounded border border-gray-200">
+                            <p class="text-gray-800 whitespace-pre-wrap">${ticket.description || 'No description provided'}</p>
+                        </div>
+                    </div>
+
+                    <!-- Resolution Notes -->
+                    ${ticket.resolutionNotes ? `
+                        <div>
+                            <p class="text-gray-500 text-sm mb-2">Resolution Notes</p>
+                            <div class="bg-yellow-50 p-4 rounded border border-yellow-200">
+                                <p class="text-gray-800 whitespace-pre-wrap">${ticket.resolutionNotes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Status Timeline -->
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        ${ticket.createdAt ? `
+                            <div class="bg-blue-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Submitted</p>
+                                <p class="text-sm font-semibold text-blue-600">${new Date(ticket.createdAt).toLocaleDateString()}</p>
+                            </div>
+                        ` : ''}
+                        ${ticket.resolvedAt ? `
+                            <div class="bg-yellow-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Resolved</p>
+                                <p class="text-sm font-semibold text-yellow-600">${new Date(ticket.resolvedAt).toLocaleDateString()}</p>
+                            </div>
+                        ` : ''}
+                        ${ticket.closedAt ? `
+                            <div class="bg-green-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Closed</p>
+                                <p class="text-sm font-semibold text-green-600">${new Date(ticket.closedAt).toLocaleDateString()}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    ${historyHtml}
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('ticketDetailsModal');
+            if (modal && event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

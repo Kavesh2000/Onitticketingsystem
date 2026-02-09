@@ -1,0 +1,12 @@
+[
+  {
+    "id": "f096d72e-bcdf-41de-a4f5-70f5d846d5b3",
+    "timestamp": "2026-02-09T06:57:03.207Z",
+    "from": "automation@maishabank.com",
+    "to": "stevaniah.kavela@maishabank.com",
+    "subject": "Leave Request Approved - Annual",
+    "body": "\nDear Stevaniah Kavela,\n\nYour Annual leave request for 4 day(s) has been APPROVED.\n\nLeave Type: Annual\nDuration: 4 days\nStatus: APPROVED\n\n\nBest regards,\nOnit Banking System\nautomation@maishabank.com\n        ",
+    "status": "sent",
+    "response": "250 2.0.0 OK <2ea691ff-3345-567f-5edd-272df984cb70@maishabank.com> [Hostname=AS4P189MB1992.EURP189.PROD.OUTLOOK.COM]"
+  }
+]

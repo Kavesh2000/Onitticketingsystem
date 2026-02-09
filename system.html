@@ -1,0 +1,1727 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onit Portal - Dashboard</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-link { transition: all 0.3s ease; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.06); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.08); border-left: 4px solid rgba(255,255,255,0.12); }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-gradient-to-b from-teal-700 to-teal-900 text-white p-6">
+            <div class="mb-6 pb-6 border-b border-teal-600 flex items-center gap-3">
+                    <img src="assets/onit-logo.png" alt="Onit MFB logo" class="w-12 h-12 object-contain">
+                    <div>
+                        <h1 class="text-xl font-bold">Onit</h1>
+                        <p class="text-xs text-teal-200">MFB Portal</p>
+                    </div>
+            </div>
+            <div class="mb-4 pb-4 border-b border-teal-600">
+                <p class="text-sm text-teal-100">Logged in as:</p>
+                <p id="userNameDisplay" class="font-semibold">-</p>
+                <p id="userTypeDisplay" class="text-xs text-teal-200">-</p>
+            </div>
+            <nav class="space-y-2">
+                <button onclick="switchSection('dashboard')" class="sidebar-link active w-full text-left px-4 py-3 rounded">📊 Dashboard</button>
+                <button onclick="switchSection('tickets')" class="sidebar-link w-full text-left px-4 py-3 rounded">🎫 Tickets</button>
+                <button onclick="switchSection('leave')" class="sidebar-link w-full text-left px-4 py-3 rounded">🏖️ Leave Management</button>
+                <button onclick="switchSection('claims')" class="sidebar-link w-full text-left px-4 py-3 rounded">💰 Expense Claims</button>
+                <button id="adminUsersNav" onclick="switchSection('users')" class="sidebar-link w-full text-left px-4 py-3 rounded hidden">👥 Manage Users</button>
+            </nav>
+            <div class="mt-8 pt-8 border-t border-teal-600">
+                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-auto">
+            <div id="dashboard" class="content-section active p-8">
+                <h2 class="text-3xl font-bold mb-4">Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded shadow">
+                        <p>Total Tickets: <span id="totalTickets">0</span></p>
+                        <p>Open Tickets: <span id="openTickets">0</span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <p>Name: <span id="infoName">-</span></p>
+                        <p>Email: <span id="infoEmail">-</span></p>
+                        <p>Type: <span id="infoType">-</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tickets" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Tickets</h2>
+                    <button onclick="showNewTicketForm()" class="bg-blue-600 text-white px-4 py-2 rounded">+ New Ticket</button>
+                </div>
+                <div id="newTicketForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <h3 class="font-semibold mb-2">Submit New Ticket</h3>
+                    <form id="ticketFormEl" class="space-y-3">
+                        <input id="ticketSubject" placeholder="Subject" required class="w-full p-2 border rounded" />
+                        <textarea id="ticketDescription" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
+                        <div class="flex gap-2">
+                            <select id="ticketPriority" class="p-2 border rounded">
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewTicketForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-purple-600 to-purple-800 text-white"><tr><th class="p-3 text-left font-bold">🎫 ID</th><th class="p-3 text-left font-bold">📋 Subject</th><th class="p-3 text-left font-bold">⚡ Priority</th><th class="p-3 text-left font-bold">✓ Status</th></tr></thead>
+                        <tbody id="ticketsList"><tr><td class="p-4 text-center" colspan="4">No tickets</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="leave" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Leave Management</h2>
+                    <button onclick="showNewLeaveForm()" class="bg-green-600 text-white px-4 py-2 rounded">+ Request Leave</button>
+                </div>
+                <div id="newLeaveForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <form id="leaveFormEl" class="space-y-3">
+                        <select id="leaveType" required class="p-2 border rounded w-full"><option value="Annual">Annual</option><option value="Sick">Sick</option><option value="Personal">Personal</option></select>
+                        <input id="leaveDays" type="number" min="1" required class="w-full p-2 border rounded" placeholder="Days" />
+                        <div class="flex gap-2">
+                            <button class="bg-green-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewLeaveForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow p-4">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-orange-600 to-orange-800 text-white"><tr><th class="p-3 text-left font-bold">📋 ID</th><th class="p-3 text-left font-bold">🏖️ Type</th><th class="p-3 text-left font-bold">⏱️ Days</th><th class="p-3 text-left font-bold">✓ Status</th></tr></thead>
+                        <tbody id="leaveList"><tr><td class="p-4 text-center" colspan="4">No leave requests</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expense Claims Section -->
+            <div id="claims" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Expense Claims</h2>
+                    <button onclick="showNewClaimForm()" class="bg-orange-600 text-white px-4 py-2 rounded">+ New Claim</button>
+                </div>
+                <div id="newClaimForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <h3 class="font-semibold mb-2">Submit Expense Claim</h3>
+                    <form id="claimFormEl" class="space-y-3">
+                        <input id="claimAmount" type="number" min="0" step="0.01" placeholder="Amount" required class="w-full p-2 border rounded" />
+                        <select id="claimType" required class="w-full p-2 border rounded"><option value="">Select Type</option><option value="Travel">Travel</option><option value="Meals">Meals</option><option value="Supplies">Supplies</option><option value="Other">Other</option></select>
+                        <textarea id="claimDescription" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
+                        <div class="flex gap-2">
+                            <button class="bg-orange-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewClaimForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow p-4">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-blue-600 to-blue-800 text-white"><tr><th class="p-3 text-left font-bold">📋 ID</th><th class="p-3 text-left font-bold">💰 Type</th><th class="p-3 text-left font-bold">💵 Amount</th><th class="p-3 text-left font-bold">✓ Status</th><th class="p-3 text-left font-bold">⚙️ Actions</th></tr></thead>
+                        <tbody id="claimsList"><tr><td class="p-4 text-center" colspan="5">No claims</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Manage Claims Section (Finance Officer/Head of Finance) -->
+            <div id="manageclaims" class="content-section p-8 hidden">
+                <h2 class="text-2xl font-bold mb-4">Manage Claims</h2>
+                <div class="bg-white rounded shadow p-4 mb-4">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2 text-left">ID</th>
+                                <th class="p-2 text-left">Claimant</th>
+                                <th class="p-2 text-left">Type</th>
+                                <th class="p-2 text-left">Amount</th>
+                                <th class="p-2 text-left">Current Step</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manageClaimsList">
+                            <tr><td class="p-4 text-center" colspan="7">No claims to review</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pending Approvals Section (Admin/Finance/Teller Only) -->
+            <div id="approvals" class="content-section p-8">
+                <h2 class="text-2xl font-bold mb-4">Pending Approvals</h2>
+                <div id="approvalsList" class="space-y-4">
+                    <p class="text-gray-500">No pending approvals</p>
+                </div>
+            </div>
+
+            <!-- Approval Modal -->
+            <div id="approvalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-2xl font-bold mb-4">Review Claim</h3>
+                    <div id="claimDetails" class="mb-6 p-4 bg-gray-50 rounded space-y-2"></div>
+                    <div id="workflowProgress" class="mb-6 hidden">
+                        <h4 class="font-semibold mb-3">Approval Progress</h4>
+                        <div id="progressSteps" class="space-y-2"></div>
+                    </div>
+                    <div id="approvalControls" class="mb-6 hidden">
+                        <textarea id="approvalComment" placeholder="Comments (optional)" rows="3" class="w-full p-2 border rounded mb-2"></textarea>
+                        <div class="flex gap-2">
+                            <button onclick="approveClaim()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded">Approve</button>
+                            <button onclick="showRejectForm()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded">Reject</button>
+                        </div>
+                    </div>
+                    <div id="rejectForm" class="mb-6 hidden">
+                        <textarea id="rejectionReason" placeholder="Reason for rejection *" rows="3" class="w-full p-2 border rounded mb-2" required></textarea>
+                        <button onclick="submitRejection()" class="w-full bg-red-600 text-white px-4 py-2 rounded">Submit Rejection</button>
+                    </div>
+                    <button onclick="closeApprovalModal()" class="w-full bg-gray-300 px-4 py-2 rounded">Close</button>
+                </div>
+            </div>
+
+            <!-- Manage Users Section (Admin Only) -->
+            <div id="users" class="content-section p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold">Manage Users</h2>
+                        <p class="text-sm text-gray-600 mt-1">Create Finance Portal users for testing</p>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="createDemoUsers()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">🧪 Create Demo Users</button>
+                        <button onclick="showNewUserForm()" class="bg-purple-600 text-white px-4 py-2 rounded">+ Add User</button>
+                    </div>
+                </div>
+
+                <div id="newUserForm" class="hidden bg-white p-6 rounded shadow mb-6">
+                    <h3 class="font-semibold mb-4 text-lg">Create New User</h3>
+                    <form id="userFormEl" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input id="newUserName" type="text" placeholder="Full Name" required class="p-3 border rounded" />
+                        <input id="newUserEmail" type="email" placeholder="Email" required class="p-3 border rounded" />
+                        
+                        <select id="newUserRole" required class="p-3 border rounded">
+                            <option value="">Select Role</option>
+                            <option value="User">User</option>
+                            <option value="Finance Officer">Finance Officer</option>
+                            <option value="Head of Finance">Head of Finance</option>
+                        </select>
+                        
+                        <select id="newUserDept" class="p-3 border rounded">
+                            <option value="">Select Department</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Operations">Operations</option>
+                            <option value="HR">HR</option>
+                            <option value="IT">IT</option>
+                        </select>
+                        
+                        <input id="newUserPassword" type="password" placeholder="Password" required class="p-3 border rounded" />
+                        
+                        <div class="flex gap-2">
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded flex-1">Create User</button>
+                            <button type="button" onclick="hideNewUserForm()" class="bg-gray-300 px-4 py-2 rounded flex-1">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-3 text-left">Name</th>
+                                <th class="p-3 text-left">Email</th>
+                                <th class="p-3 text-left">Role</th>
+                                <th class="p-3 text-left">Department</th>
+                                <th class="p-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersList">
+                            <tr><td class="p-4 text-center" colspan="5">No users created yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="approval-workflow.js"></script>
+    <script>
+        let workflow;
+        let currentApprovalWF = null;
+
+        function switchSection(id){ 
+            document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active')); 
+            document.getElementById(id).classList.add('active');
+        }
+        
+        function showNewClaimForm(){ document.getElementById('newClaimForm').classList.remove('hidden'); }
+        function hideNewClaimForm(){ document.getElementById('newClaimForm').classList.add('hidden'); }
+        function showNewTicketForm(){ document.getElementById('newTicketForm').classList.remove('hidden'); }
+        function hideNewTicketForm(){ document.getElementById('newTicketForm').classList.add('hidden'); }
+        function showNewLeaveForm(){ document.getElementById('newLeaveForm').classList.remove('hidden'); }
+        function hideNewLeaveForm(){ document.getElementById('newLeaveForm').classList.add('hidden'); }
+        function logout(){ localStorage.clear(); window.location.href='index.html'; }
+
+        // init
+        window.addEventListener('load', ()=>{
+            if(!localStorage.getItem('userId')) { window.location.href='index.html'; return; }
+            
+            // Auto-create demo finance users on first admin login
+            if(localStorage.getItem('isAdmin')==='true' && !localStorage.getItem('financeUsers')) {
+                const demoUsers = [
+                    {
+                        name: 'John Finance Officer',
+                        email: 'john.finance@onit.local',
+                        role: 'Finance Officer',
+                        department: 'Finance',
+                        password: '1234',
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        name: 'Sarah Head of Finance',
+                        email: 'sarah.hof@onit.local',
+                        role: 'Head of Finance',
+                        department: 'Finance',
+                        password: '1234',
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('financeUsers', JSON.stringify(demoUsers));
+            }
+            
+            const userRole = localStorage.getItem('userRole') || 'User';
+            document.getElementById('userNameDisplay').textContent = localStorage.getItem('userName') || '-';
+            document.getElementById('userTypeDisplay').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : userRole;
+            document.getElementById('infoName').textContent = localStorage.getItem('userName')||'-';
+            document.getElementById('infoEmail').textContent = localStorage.getItem('userEmail')||'-';
+            document.getElementById('infoType').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : userRole;
+            
+            // Show Manage Claims nav for Finance Officer/Head of Finance
+            if(userRole === 'Finance Officer' || userRole === 'Head of Finance') {
+                document.getElementById('manageclaimsNav').classList.remove('hidden');
+            }
+            
+            // Show Manage Users nav for Admin only
+            if(localStorage.getItem('isAdmin')==='true') {
+                document.getElementById('adminUsersNav').classList.remove('hidden');
+            }
+            
+            // Show approval nav for Finance Officer/Head of Finance/Admin
+            if(userRole === 'Finance Officer' || userRole === 'Head of Finance' || localStorage.getItem('isAdmin')==='true') {
+                document.getElementById('approvalNav').classList.remove('hidden');
+            }
+            
+            // Initialize workflow for expense claims
+            const claimWorkflowConfig = {
+                moduleName: 'expense',
+                steps: [
+                    { stepId: 'finance-officer-review', role: 'Finance Officer', department: 'Finance', approver: 'Finance Officer' },
+                    { stepId: 'head-of-finance-review', role: 'Head of Finance', department: 'Finance', approver: 'Head of Finance' }
+                ]
+            };
+            workflow = new ApprovalWorkflow(claimWorkflowConfig);
+            
+            loadTickets(); loadLeaveRequests(); loadClaims(); loadUsers(); updateStats();
+        });
+
+        function updateStats(){ const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); document.getElementById('totalTickets').textContent=tickets.length; document.getElementById('openTickets').textContent=tickets.filter(t=>t.status==='Open').length; }
+
+        function loadTickets(){ const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); const isAdmin=localStorage.getItem('isAdmin')==='true'; const userEmail=localStorage.getItem('userEmail'); const filtered=isAdmin?tickets:tickets.filter(t=>t.email===userEmail); const tbody=document.getElementById('ticketsList'); if(filtered.length===0){ tbody.innerHTML='<tr><td colspan="4" class="p-4 text-center">No tickets</td></tr>'; return; } tbody.innerHTML=filtered.map(t=>`<tr><td class="p-2">${t.id}</td><td class="p-2">${t.subject}</td><td class="p-2">${t.priority}</td><td class="p-2">${t.status}</td></tr>`).join(''); }
+
+        document.getElementById('ticketFormEl').addEventListener('submit', function(e){ e.preventDefault(); const id='TICK-'+Math.random().toString(36).slice(2,9).toUpperCase(); const ticket={ id, subject:document.getElementById('ticketSubject').value, description:document.getElementById('ticketDescription').value, priority:document.getElementById('ticketPriority').value||'Low', status:'Open', email:localStorage.getItem('userEmail'), timestamp:new Date().toISOString() }; const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); tickets.push(ticket); localStorage.setItem('tickets', JSON.stringify(tickets)); hideNewTicketForm(); this.reset(); loadTickets(); updateStats(); alert('Ticket submitted: '+id); });
+
+        function loadLeaveRequests(){ const reqs=JSON.parse(localStorage.getItem('leaveRequests')||'[]'); const isAdmin=localStorage.getItem('isAdmin')==='true'; const userEmail=localStorage.getItem('userEmail'); const filtered=isAdmin?reqs:reqs.filter(r=>r.email===userEmail); const tbody=document.getElementById('leaveList'); if(filtered.length===0){ tbody.innerHTML='<tr><td colspan="4" class="p-4 text-center">No leave requests</td></tr>'; return; } tbody.innerHTML=filtered.map(r=>`<tr><td class="p-2">${r.id}</td><td class="p-2">${r.type}</td><td class="p-2">${r.days}</td><td class="p-2">${r.status}</td></tr>`).join(''); }
+
+        document.getElementById('leaveFormEl').addEventListener('submit', function(e){ e.preventDefault(); const id='LEAVE-'+Math.random().toString(36).slice(2,9).toUpperCase(); const req={ id, type:document.getElementById('leaveType').value, days:parseInt(document.getElementById('leaveDays').value)||1, status:'Pending', approverDept: 'Admin', email:localStorage.getItem('userEmail'), timestamp:new Date().toISOString() }; const reqs=JSON.parse(localStorage.getItem('leaveRequests')||'[]'); reqs.push(req); localStorage.setItem('leaveRequests', JSON.stringify(reqs)); hideNewLeaveForm(); this.reset(); loadLeaveRequests(); alert('Leave request submitted: '+id); });
+
+        // Expense Claims with Approval Workflow
+        function loadClaims() {
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            const isAdmin = localStorage.getItem('isAdmin')==='true';
+            const userEmail = localStorage.getItem('userEmail');
+            const filtered = isAdmin ? claims : claims.filter(c => c.email === userEmail);
+            const tbody = document.getElementById('claimsList');
+            
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">No claims</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(claim => {
+                const wfs = workflow.getWorkflowsByRequestId(claim.id);
+                const wf = wfs[0];
+                const status = wf ? wf.status : 'submitted';
+                const statusClass = status === 'approved' ? 'bg-green-100' : status === 'rejected' ? 'bg-red-100' : 'bg-yellow-100';
+                return `<tr><td class="p-2">${claim.id}</td><td class="p-2">${claim.type}</td><td class="p-2">₦${parseFloat(claim.amount).toFixed(2)}</td><td class="p-2"><span class="px-2 py-1 rounded text-xs ${statusClass}">${status}</span></td><td class="p-2"><button onclick="viewClaimDetails('${claim.id}', '${wf ? wf.id : ''}')" class="text-blue-600">View</button></td></tr>`;
+            }).join('');
+        }
+
+        document.getElementById('claimFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nextIds = JSON.parse(localStorage.getItem('claimNextId') || '{"id": 1}');
+            const id = String(nextIds.id);
+            nextIds.id++;
+            localStorage.setItem('claimNextId', JSON.stringify(nextIds));
+            const claim = {
+                id,
+                claimant: localStorage.getItem('userName'),
+                email: localStorage.getItem('userEmail'),
+                type: document.getElementById('claimType').value,
+                amount: parseFloat(document.getElementById('claimAmount').value),
+                description: document.getElementById('claimDescription').value,
+                status: 'SUBMITTED',
+                currentStep: 'finance-review',
+                timestamp: new Date().toISOString()
+            };
+            
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            claims.push(claim);
+            localStorage.setItem('expenseClaims', JSON.stringify(claims));
+            
+            // Create approval workflow
+            try {
+                workflow.createWorkflow(id, 'expense', claim, claim.email);
+                alert('Claim submitted: ' + id + '\n\nStatus: Awaiting Finance Officer Review');
+            } catch(e) {
+                alert('Error creating workflow: ' + e.message);
+            }
+            
+            hideNewClaimForm();
+            this.reset();
+            loadClaims();
+        });
+
+        function loadPendingApprovals() {
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const userRole = localStorage.getItem('userRole') || 'User';
+            let pending = [];
+            
+            // Admin should NOT see approvals here - only Finance Portal handles approvals
+            if(isAdmin) {
+                // Admins don't handle approvals, they are user management only
+                pending = [];
+            } else {
+                // Regular users see only approvals for their role
+                pending = workflow.getPendingApprovalsForRole(userRole);
+            }
+            
+            const container = document.getElementById('approvalsList');
+            
+            if(pending.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No pending approvals</p>';
+                return;
+            }
+            
+            container.innerHTML = pending.map(wf => `
+                <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold">${wf.data.type} - ₦${parseFloat(wf.data.amount).toFixed(2)}</h3>
+                            <p class="text-sm text-gray-600">Claimant: ${wf.data.claimant}</p>
+                            <p class="text-sm text-gray-600">ID: ${wf.data.id}</p>
+                        </div>
+                        <button onclick="viewClaimDetails('${wf.data.id}', '${wf.id}')" class="bg-blue-600 text-white px-4 py-2 rounded">Review</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function viewClaimDetails(claimId, workflowId) {
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            const claim = claims.find(c => c.id === claimId);
+            if(!claim) return;
+
+            currentApprovalWF = workflowId ? workflow.getWorkflow(workflowId) : null;
+
+            document.getElementById('claimDetails').innerHTML = `
+                <p><strong>ID:</strong> ${claim.id}</p>
+                <p><strong>Claimant:</strong> ${claim.claimant}</p>
+                <p><strong>Amount:</strong> ₦${parseFloat(claim.amount).toFixed(2)}</p>
+                <p><strong>Type:</strong> ${claim.type}</p>
+                <p><strong>Description:</strong> ${claim.description}</p>
+                <p><strong>Status:</strong> ${claim.status}</p>
+            `;
+
+            if(currentApprovalWF) {
+                document.getElementById('workflowProgress').classList.remove('hidden');
+                const progress = workflow.getApprovalProgress(workflowId);
+                const stepHtml = progress.steps.map(s => {
+                    const icon = s.status === 'approved' ? '✅' : s.status === 'rejected' ? '❌' : s.status === 'pending' ? '⏳' : '⏸️';
+                    return `<div class="p-3 bg-gray-100 rounded"><strong>${icon} ${s.stepId}</strong> (${s.role}/${s.department||'N/A'}) - ${s.status}</div>`;
+                }).join('');
+                document.getElementById('progressSteps').innerHTML = stepHtml;
+
+                const currentStep = currentApprovalWF.steps[currentApprovalWF.currentStep];
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const isCurrentRoleAndDept = currentStep && currentStep.status === 'pending' && 
+                                            currentStep.role === userRole && 
+                                            (!currentStep.department || currentStep.department === userDept);
+                
+                if(isCurrentRoleAndDept) {
+                    document.getElementById('approvalControls').classList.remove('hidden');
+                } else {
+                    document.getElementById('approvalControls').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('workflowProgress').classList.add('hidden');
+                document.getElementById('approvalControls').classList.add('hidden');
+            }
+
+            document.getElementById('rejectForm').classList.add('hidden');
+            document.getElementById('approvalModal').classList.remove('hidden');
+        }
+
+        function approveClaim() {
+            try {
+                const comment = document.getElementById('approvalComment').value;
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const userEmail = localStorage.getItem('userEmail');
+                const currentStep = currentApprovalWF.steps[currentApprovalWF.currentStep];
+                
+                workflow.approveStep(currentApprovalWF.id, userEmail, userRole, userDept, comment);
+                
+                const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+                const claim = claims.find(c => c.id === currentApprovalWF.requestId);
+                if(claim) {
+                    if(currentApprovalWF.currentStep === 0) {
+                        claim.status = 'FINANCE_OFFICER_APPROVED';
+                    } else if(currentApprovalWF.currentStep === 1) {
+                        claim.status = 'APPROVED';
+                    }
+                    localStorage.setItem('expenseClaims', JSON.stringify(claims));
+                }
+                
+                const stepName = currentStep.stepId === 'finance-officer-review' ? 'Finance Officer' : 'Head of Finance';
+                const nextAction = currentStep.stepId === 'finance-officer-review' ? 'sent to Head of Finance for final approval' : 'fully approved';
+                alert(`Claim approved by ${stepName}! Claim has been ${nextAction}.`);
+                closeApprovalModal();
+                loadClaims();
+                loadPendingApprovals();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function showRejectForm() {
+            document.getElementById('rejectForm').classList.remove('hidden');
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectionReason').value.trim();
+            if(!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+            try {
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const userEmail = localStorage.getItem('userEmail');
+                workflow.rejectStep(currentApprovalWF.id, userEmail, userRole, userDept, reason);
+                
+                const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+                const claim = claims.find(c => c.id === currentApprovalWF.requestId);
+                if(claim) {
+                    claim.status = 'REJECTED';
+                    localStorage.setItem('expenseClaims', JSON.stringify(claims));
+                }
+                
+                alert('Claim rejected: ' + reason + '\\n\\nUser will be notified.');
+                closeApprovalModal();
+                loadClaims();
+                loadPendingApprovals();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.add('hidden');
+        }
+
+        // Manage Users Functions
+        function showNewUserForm() {
+            document.getElementById('newUserForm').classList.remove('hidden');
+        }
+
+        function hideNewUserForm() {
+            document.getElementById('newUserForm').classList.add('hidden');
+            document.getElementById('userFormEl').reset();
+        }
+
+        function loadUsers() {
+            const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            const tbody = document.getElementById('usersList');
+            
+            if(users.length === 0) {
+                tbody.innerHTML = '<tr><td class="p-4 text-center" colspan="5">No users created yet</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map((user, idx) => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${user.name}</td>
+                    <td class="p-3">${user.email}</td>
+                    <td class="p-3"><span class="px-2 py-1 bg-blue-100 rounded text-xs font-semibold">${user.role}</span></td>
+                    <td class="p-3">${user.department || '-'}</td>
+                    <td class="p-3">
+                        <button onclick="deleteUser(${idx})" class="text-red-600 hover:text-red-800 text-sm font-semibold">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('userFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            const dept = document.getElementById('newUserDept').value;
+            const password = document.getElementById('newUserPassword').value;
+            
+            if(!name || !email || !role || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            
+            // Check if email already exists
+            if(users.find(u => u.email === email)) {
+                alert('User with this email already exists');
+                return;
+            }
+            
+            const newUser = {
+                name,
+                email,
+                role,
+                department: dept || 'General',
+                password,
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(newUser);
+            localStorage.setItem('financeUsers', JSON.stringify(users));
+            
+            alert(`User created successfully!\n\nName: ${name}\nEmail: ${email}\nRole: ${role}\n\nThey can now log into the Finance Portal.`);
+            
+            hideNewUserForm();
+            loadUsers();
+        });
+
+        function deleteUser(index) {
+            if(confirm('Are you sure you want to delete this user?')) {
+                const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+                const deleted = users.splice(index, 1);
+                localStorage.setItem('financeUsers', JSON.stringify(users));
+                alert(`User ${deleted[0].name} deleted successfully`);
+                loadUsers();
+            }
+        }
+
+        function createDemoUsers() {
+            const demoUsers = [
+                {
+                    name: 'John Finance Officer',
+                    email: 'john.finance@onit.local',
+                    role: 'Finance Officer',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Sarah Head of Finance',
+                    email: 'sarah.hof@onit.local',
+                    role: 'Head of Finance',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                }
+            ];
+
+            localStorage.setItem('financeUsers', JSON.stringify(demoUsers));
+            alert('Demo users created successfully!\n\nFinance Officer:\nEmail: john.finance@onit.local\nPassword: 1234\n\nHead of Finance:\nEmail: sarah.hof@onit.local\nPassword: 1234');
+            loadUsers();
+        }
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onit Portal - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-link {
+            transition: all 0.3s ease;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .sidebar-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid white;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 bg-gradient-to-b from-teal-700 to-teal-900 text-white p-6">
+            <h1 class="text-2xl font-bold mb-8">Onit Portal</h1>
+            
+            <div class="mb-4 pb-4 border-b border-teal-600">
+                <p class="text-sm text-teal-100">Logged in as:</p>
+                <p id="userNameDisplay" class="font-semibold"></p>
+                <p id="userTypeDisplay" class="text-xs text-teal-200"></p>
+            </div>
+
+            <nav class="space-y-2">
+                <button onclick="switchSection('dashboard')" class="sidebar-link active w-full text-left px-4 py-3 rounded transition">
+                    📊 Dashboard
+                </button>
+                <button onclick="switchSection('tickets')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
+                    🎫 Tickets
+                </button>
+                <button onclick="switchSection('leave')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
+                    🏖️ Leave Management
+                </button>
+            </nav>
+
+            <div class="mt-8 pt-8 border-t border-teal-600">
+                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <!-- Dashboard -->
+            <div id="dashboard" class="content-section active">
+                <div class="p-8">
+                    <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4">📊 Quick Stats</h3>
+                            <div class="space-y-2">
+                                <p>Total Tickets: <span id="totalTickets" class="font-bold">0</span></p>
+                                <p>Open Tickets: <span id="openTickets" class="font-bold text-blue-600">0</span></p>
+                                <p>Leave Balance: <span id="leaveBalance" class="font-bold text-green-600">-</span></p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold mb-4">ℹ️ User Information</h3>
+                            <div class="space-y-2">
+                                <p>Name: <span id="infoName" class="font-semibold">-</span></p>
+                                <p>Email: <span id="infoEmail" class="font-semibold">-</span></p>
+                                <p>Account Type: <span id="infoType" class="font-semibold">-</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets Section -->
+            <div id="tickets" class="content-section">
+                <div class="p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Tickets</h2>
+                        <button onclick="showNewTicketForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                            + New Ticket
+                        </button>
+                    </div>
+
+                    <!-- New Ticket Form -->
+                    <div id="newTicketForm" class="hidden bg-white p-6 rounded-lg shadow mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Submit New Ticket</h3>
+                        <form id="ticketFormEl" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Issue Type</label>
+                                    <select id="ticketType" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">Select Type</option>
+                                        <option value="Request">Request</option>
+                                        <option value="Issue">Issue</option>
+                                        <option value="Bug">Bug</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Priority</label>
+                                    <select id="ticketPriority" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="">Select Priority</option>
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Critical">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Subject</label>
+                                <input type="text" id="ticketSubject" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Brief description">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Description</label>
+                                <textarea id="ticketDescription" required rows="4" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Detailed description"></textarea>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit Ticket</button>
+                                <button type="button" onclick="hideNewTicketForm()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Tickets List -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Ticket ID</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Subject</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Priority</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsList" class="divide-y">
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Management -->
+            <div id="leave" class="content-section">
+                <div class="p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-bold">Leave Management</h2>
+                        <button onclick="showNewLeaveForm()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                            + Request Leave
+                        </button>
+                    </div>
+
+                    <!-- Leave Balances -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-blue-100 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Annual Leave</p>
+                            <p id="annualBalance" class="text-2xl font-bold text-blue-600">-</p>
+                        </div>
+                        <div class="bg-yellow-100 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Sick Leave</p>
+                            <p id="sickBalance" class="text-2xl font-bold text-yellow-600">-</p>
+                        </div>
+                        <div class="bg-purple-100 p-4 rounded-lg">
+                            <p class="text-sm text-gray-600">Personal Leave</p>
+                            <p id="personalBalance" class="text-2xl font-bold text-purple-600">-</p>
+                        </div>
+                    </div>
+
+                    <!-- New Leave Request Form -->
+                    <div id="newLeaveForm" class="hidden bg-white p-6 rounded-lg shadow mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Request Leave</h3>
+                        <form id="leaveFormEl" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Leave Type</label>
+                                    <select id="leaveType" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                                        <option value="">Select Type</option>
+                                        <option value="Annual">Annual Leave</option>
+                                        <option value="Sick">Sick Leave</option>
+                                        <option value="Personal">Personal Leave</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Number of Days</label>
+                                    <input type="number" id="leaveDays" required min="1" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Start Date</label>
+                                    <input type="date" id="leaveStartDate" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">End Date</label>
+                                    <input type="date" id="leaveEndDate" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Reason</label>
+                                <textarea id="leaveReason" rows="3" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Reason for leave (optional)"></textarea>
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Submit Request</button>
+                                <button type="button" onclick="hideNewLeaveForm()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Leave Requests List -->
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Request ID</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Days</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Start Date</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveList" class="divide-y">
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No leave requests yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all links
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked link
+            event.target.classList.add('active');
+        }
+
+        function showNewTicketForm() {
+            document.getElementById('newTicketForm').classList.remove('hidden');
+        }
+
+        function hideNewTicketForm() {
+            document.getElementById('newTicketForm').classList.add('hidden');
+        }
+
+        function showNewLeaveForm() {
+            document.getElementById('newLeaveForm').classList.remove('hidden');
+        }
+
+        function hideNewLeaveForm() {
+            document.getElementById('newLeaveForm').classList.add('hidden');
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // Initialize dashboard
+        window.addEventListener('load', function() {
+            if (!localStorage.getItem('userId')) {
+                window.location.href = 'index.html';
+                return;
+            }
+            initDashboard();
+            loadTickets();
+            loadLeaveData();
+        });
+
+        function initDashboard() {
+            const userName = localStorage.getItem('userName') || 'User';
+            const userEmail = localStorage.getItem('userEmail') || 'N/A';
+            const userType = localStorage.getItem('isAdmin') === 'true' ? 'Admin' : 'User';
+
+            document.getElementById('userNameDisplay').textContent = userName;
+            document.getElementById('userTypeDisplay').textContent = userType;
+            document.getElementById('infoName').textContent = userName;
+            document.getElementById('infoEmail').textContent = userEmail;
+            document.getElementById('infoType').textContent = userType;
+
+            updateQuickStats();
+        }
+
+        function updateQuickStats() {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const openCount = tickets.filter(t => t.status === 'Open').length;
+            document.getElementById('totalTickets').textContent = tickets.length;
+            document.getElementById('openTickets').textContent = openCount;
+        }
+
+        function loadTickets() {
+            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            const userEmail = localStorage.getItem('userEmail');
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            
+            // Filter tickets based on user type
+            let filteredTickets = isAdmin ? tickets : tickets.filter(t => t.email === userEmail);
+            
+            const tbody = document.getElementById('ticketsList');
+            
+            if (filteredTickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredTickets.map(ticket => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">${ticket.id}</td>
+                    <td class="px-6 py-4">${ticket.subject || ticket.type}</td>
+                    <td class="px-6 py-4">${ticket.type}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-sm font-semibold ${getPriorityClass(ticket.priority)}">
+                            ${ticket.priority}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-sm font-semibold ${getStatusClass(ticket.status)}">
+                            ${ticket.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${new Date(ticket.timestamp).toLocaleDateString()}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="viewTicket('${ticket.id}')" class="text-blue-600 hover:underline">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function loadLeaveData() {
+            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
+            const userId = localStorage.getItem('userId');
+            const employee = employees.find(e => e.id === userId);
+
+            if (employee && employee.leaveBalances) {
+                document.getElementById('annualBalance').textContent = employee.leaveBalances.annual || 0;
+                document.getElementById('sickBalance').textContent = employee.leaveBalances.sick || 0;
+                document.getElementById('personalBalance').textContent = employee.leaveBalances.personal || 0;
+                document.getElementById('leaveBalance').textContent = (employee.leaveBalances.annual || 0) + ' days';
+            }
+
+            loadLeaveRequests();
+        }
+
+        function loadLeaveRequests() {
+            const requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            const userEmail = localStorage.getItem('userEmail');
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            
+            let filteredRequests = isAdmin ? requests : requests.filter(r => r.email === userEmail);
+            
+            const tbody = document.getElementById('leaveList');
+            
+            if (filteredRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No leave requests</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredRequests.map(req => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">${req.id}</td>
+                    <td class="px-6 py-4">${req.type}</td>
+                    <td class="px-6 py-4">${req.days}</td>
+                    <td class="px-6 py-4">${new Date(req.startDate).toLocaleDateString()}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded text-sm font-semibold ${getRequestStatusClass(req.status)}">
+                            ${req.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">${new Date(req.timestamp).toLocaleDateString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        function getPriorityClass(priority) {
+            const classes = {
+                'Critical': 'bg-red-200 text-red-800',
+                'High': 'bg-orange-200 text-orange-800',
+                'Medium': 'bg-yellow-200 text-yellow-800',
+                'Low': 'bg-green-200 text-green-800'
+            };
+            return classes[priority] || 'bg-gray-200 text-gray-800';
+        }
+
+        function getStatusClass(status) {
+            const classes = {
+                'Open': 'bg-blue-200 text-blue-800',
+                'In Progress': 'bg-purple-200 text-purple-800',
+                'Resolved': 'bg-green-200 text-green-800',
+                'Closed': 'bg-gray-200 text-gray-800'
+            };
+            return classes[status] || 'bg-gray-200 text-gray-800';
+        }
+
+        function getRequestStatusClass(status) {
+            const classes = {
+                'Pending': 'bg-yellow-200 text-yellow-800',
+                'Approved': 'bg-green-200 text-green-800',
+                'Rejected': 'bg-red-200 text-red-800'
+            };
+            return classes[status] || 'bg-gray-200 text-gray-800';
+        }
+
+        function viewTicket(ticketId) {
+            alert('Viewing ticket: ' + ticketId);
+        }
+
+        // Handle ticket form submission
+        document.getElementById('ticketFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const ticketId = 'TICK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            const ticket = {
+                id: ticketId,
+                type: document.getElementById('ticketType').value,
+                subject: document.getElementById('ticketSubject').value,
+                description: document.getElementById('ticketDescription').value,
+                priority: document.getElementById('ticketPriority').value,
+                status: 'Open',
+                email: localStorage.getItem('userEmail'),
+                timestamp: new Date().toISOString()
+            };
+
+            let tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+            tickets.push(ticket);
+            localStorage.setItem('tickets', JSON.stringify(tickets));
+
+            hideNewTicketForm();
+            this.reset();
+            loadTickets();
+            updateQuickStats();
+            alert('Ticket submitted successfully! ID: ' + ticketId);
+        });
+
+        // Handle leave request form submission
+        document.getElementById('leaveFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const leaveId = 'LEAVE-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+            const request = {
+                id: leaveId,
+                type: document.getElementById('leaveType').value,
+                days: parseInt(document.getElementById('leaveDays').value),
+                startDate: document.getElementById('leaveStartDate').value,
+                endDate: document.getElementById('leaveEndDate').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'Pending',
+                email: localStorage.getItem('userEmail'),
+                timestamp: new Date().toISOString()
+            };
+
+            let requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+            requests.push(request);
+            localStorage.setItem('leaveRequests', JSON.stringify(requests));
+
+            hideNewLeaveForm();
+            this.reset();
+            loadLeaveRequests();
+            alert('Leave request submitted! ID: ' + leaveId);
+        });
+    </script>
+</body>
+</html>
+        body {
+            background: #F8FAFC;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(135deg, #0A2540 0%, #0F766E 100%);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.closed {
+            transform: translateX(-100%);
+        }
+        
+        .sidebar-header {
+            padding: 25px 20px;
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #F8FAFC;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+        
+        .nav-section {
+            margin-bottom: 10px;
+            padding: 0 15px;
+        }
+        
+        .nav-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: rgba(248,250,252,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 15px 0 10px 0;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            color: rgba(248,250,252,0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: #F8FAFC;
+            padding-left: 20px;
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            color: #FEF08A;
+            border-left: 3px solid #FEF08A;
+            padding-left: 12px;
+        }
+        
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 15px;
+            background: #DC2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .logout-btn:hover {
+            background: #B91C1C;
+            transform: translateX(5px);
+        }
+        
+        /* Header Styles */
+        .header {
+            margin-left: 280px;
+            background: white;
+            border-bottom: 1px solid #E2E8F0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: margin-left 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .header.expanded {
+            margin-left: 0;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #0A2540;
+            transition: all 0.3s ease;
+        }
+        
+        .hamburger:hover {
+            color: #0F766E;
+        }
+        
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0A2540;
+            margin: 0;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-info {
+            text-align: right;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #0A2540;
+            font-size: 14px;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: #64748B;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 40px 30px;
+            transition: margin-left 0.3s ease;
+        }
+        
+        .main-content.expanded {
+            margin-left: 0;
+        }
+        
+        /* Overlay for mobile */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                max-width: 280px;
+            }
+            
+            .header {
+                margin-left: 0;
+            }
+            
+            .header.expanded {
+                margin-left: 0;
+            }
+            
+            .hamburger {
+                display: block;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            
+            .header-title {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+    
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <i class="fas fa-building"></i>
+                <span>Onit MFB</span>
+            </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <!-- Ticketing Module -->
+            <div class="nav-section">
+                <div class="nav-section-title">Core Modules</div>
+                <a href="submit.html" class="nav-item" data-page="submit">
+                    <i class="fas fa-ticket-alt"></i>
+                    <span>Submit Ticket</span>
+                </a>
+                <a href="tickets.html" class="nav-item" data-page="tickets">
+                    <i class="fas fa-list"></i>
+                    <span>View Tickets</span>
+                </a>
+                <a href="leave-management.html" class="nav-item" data-page="leave-management" data-module="leave-management">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Leave Management</span>
+                </a>
+            </div>
+            
+            <!-- Finance Module -->
+            <div class="nav-section">
+                <div class="nav-section-title">Finance</div>
+                <div class="nav-section" data-module="finance">
+                <a href="finance.html" class="nav-item" data-page="finance" data-module="finance">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Reconciliation</span>
+                </a>
+                </div>
+            </div>
+            
+            <!-- Admin & Management -->
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <a href="users.html" class="nav-item" data-page="users" data-module="users">
+                    <i class="fas fa-users"></i>
+                    <span>Users & Roles</span>
+                </a>
+                <a href="admin.html" class="nav-item" data-page="admin" data-module="admin">
+                    <i class="fas fa-cog"></i>
+                    <span>Admin Panel</span>
+                </a>
+                <a href="password-reset.html" class="nav-item" data-page="password-reset" data-module="password-reset">
+                    <i class="fas fa-key"></i>
+                    <span>Password Reset</span>
+                </a>
+                <a href="purchases.html" class="nav-item" data-page="purchases" data-module="purchases">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Purchases</span>
+                </a>
+            </div>
+            
+            <!-- Compliance & Reporting -->
+            <div class="nav-section">
+                <div class="nav-section-title">Compliance</div>
+                <a href="audit.html" class="nav-item" data-page="audit" data-module="audit">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Audit & Compliance</span>
+                </a>
+                <a href="reports.html" class="nav-item" data-page="reports" data-module="reporting">
+                    <i class="fas fa-file-chart-line"></i>
+                    <span>Reports & Analytics</span>
+                </a>
+            </div>
+            
+            <!-- Security -->
+            <div class="nav-section">
+                <div class="nav-section-title">Security</div>
+                <a href="iam.html" class="nav-item" data-page="iam" data-module="iam">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Identity & Access Management</span>
+                </a>
+                <a href="pam.html" class="nav-item" data-page="pam" data-module="pam">
+                    <i class="fas fa-key"></i>
+                    <span>Privileged Access Management</span>
+                </a>
+                <a href="security-incident.html" class="nav-item" data-page="security-incident" data-module="security-incident">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Security Incident Management</span>
+                </a>
+                <a href="vulnerability.html" class="nav-item" data-page="vulnerability" data-module="vulnerability">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Vulnerability Management</span>
+                </a>
+                <a href="policy-compliance.html" class="nav-item" data-page="policy-compliance" data-module="policy-compliance">
+                    <i class="fas fa-file-contract"></i>
+                    <span>Policy & Compliance</span>
+                </a>
+                <a href="security-dashboard.html" class="nav-item" data-page="security-dashboard" data-module="security-dashboard">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Security Dashboards</span>
+                </a>
+            </div>
+            
+            <!-- Data Analysis -->
+            <div class="nav-section">
+                <div class="nav-section-title">Data Analysis</div>
+                <a href="data-integration.html" class="nav-item" data-page="data-integration" data-module="data-integration">
+                    <i class="fas fa-database"></i>
+                    <span>Data Integration</span>
+                </a>
+                <a href="data-warehouse.html" class="nav-item" data-page="data-warehouse" data-module="data-warehouse">
+                    <i class="fas fa-server"></i>
+                    <span>Data Warehouse</span>
+                </a>
+                <a href="analytics-bi.html" class="nav-item" data-page="analytics-bi" data-module="analytics-bi">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics & BI Dashboards</span>
+                </a>
+                <a href="data-governance.html" class="nav-item" data-page="data-governance" data-module="data-governance">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Data Governance</span>
+                </a>
+            </div>
+            
+            <!-- System -->
+            <div class="nav-section">
+                <div class="nav-section-title">System</div>
+                <a href="config.html" class="nav-item" data-page="config" data-module="config">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Configuration</span>
+                </a>
+                <a href="inventory.html" class="nav-item" data-page="inventory" data-module="inventory">
+                    <i class="fas fa-boxes"></i>
+                    <span>Inventory</span>
+                </a>
+                <a href="notifications.html" class="nav-item" data-page="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </div>
+        </nav>
+        
+        <div class="sidebar-footer">
+            <button class="logout-btn" id="logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </button>
+        </div>
+    </aside>
+    
+    <!-- Header -->
+    <header id="header" class="header">
+        <div class="header-left">
+            <button id="hamburger" class="hamburger" title="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="header-title">Dashboard</h1>
+        </div>
+        <div class="header-right">
+            <div class="user-info">
+                <div class="user-name" id="userName">User</div>
+                <div class="user-role" id="userRole">Department</div>
+            </div>
+        </div>
+    </header>
+
+    
+    <!-- Main Content -->
+    <main id="mainContent" class="main-content">
+        <section class="text-center mb-12">
+            <h2 class="text-4xl font-bold mb-4 text-gray-900">Welcome to Onit MFB</h2>
+            <p class="text-xl text-gray-600">Enterprise Banking Support System</p>
+        </section>
+
+        <section class="grid md:grid-cols-3 gap-8 mb-12">
+            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-teal-600 hover:shadow-xl transition">
+                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-ticket-alt text-teal-600"></i>
+                    Open Tickets
+                </h3>
+                <p class="text-4xl font-bold text-teal-600" id="openCount">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-amber-600 hover:shadow-xl transition">
+                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-hourglass-half text-amber-600"></i>
+                    In Progress
+                </h3>
+                <p class="text-4xl font-bold text-amber-600" id="progressCount">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-600 hover:shadow-xl transition">
+                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                    Closed This Month
+                </h3>
+                <p class="text-4xl font-bold text-green-600" id="closedCount">0</p>
+            </div>
+        </section>
+
+        <section class="text-center">
+            <a href="submit.html" class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg transition inline-flex items-center gap-2">
+                <i class="fas fa-plus"></i>
+                Submit a New Ticket
+            </a>
+        </section>
+    </main>
+
+    <footer class="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 py-4 text-center text-sm text-gray-600 transition" style="margin-left: 280px;">
+        <p>&copy; 2026 Onit Microfinance Bank. All rights reserved.</p>
+    </footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Check login
+        if (!localStorage.getItem('userDept')) {
+            window.location.href = 'index.html';
+        }
+
+        // Set user info
+        const userName = localStorage.getItem('userName');
+        const dept = localStorage.getItem('userDept');
+
+        // Generate username from full name
+        const generateUsername = (fullName) => {
+            const parts = fullName.split(' ');
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1]).toUpperCase();
+            }
+            return fullName.toUpperCase();
+        };
+
+        const username = generateUsername(userName);
+        document.getElementById('userName').textContent = username;
+        document.getElementById('userRole').textContent = dept;
+
+        // Hamburger menu toggle
+        const hamburger = document.getElementById('hamburger');
+        const sidebar = document.getElementById('sidebar');
+        const header = document.getElementById('header');
+        const mainContent = document.getElementById('mainContent');
+        const overlay = document.getElementById('overlay');
+
+        hamburger.addEventListener('click', function() {
+            sidebar.classList.toggle('closed');
+            header.classList.toggle('expanded');
+            mainContent.classList.toggle('expanded');
+            overlay.classList.toggle('active');
+        });
+
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', function() {
+            sidebar.classList.add('closed');
+            header.classList.remove('expanded');
+            mainContent.classList.remove('expanded');
+            overlay.classList.remove('active');
+        });
+
+        // Close menu when clicking on nav items (mobile)
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.add('closed');
+                    header.classList.remove('expanded');
+                    mainContent.classList.remove('expanded');
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Logout
+        document.getElementById('logout').addEventListener('click', function() {
+            localStorage.removeItem('userDept');
+            window.location.href = 'index.html';
+        });
+
+        // Update dashboard
+        function updateDashboard() {
+            const tickets = getTickets ? getTickets() : [];
+            const open = tickets.filter(t => t.status === 'Open').length;
+            const progress = tickets.filter(t => t.status === 'In Progress').length;
+            const closed = tickets.filter(t => {
+                if (t.status === 'Closed') {
+                    const date = new Date(t.timestamp);
+                    const now = new Date();
+                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }
+                return false;
+            }).length;
+            document.getElementById('openCount').textContent = open;
+            document.getElementById('progressCount').textContent = progress;
+            document.getElementById('closedCount').textContent = closed;
+        }
+
+        updateDashboard();
+
+        // Highlight active nav item
+        const currentPage = window.location.pathname.split('/').pop() || 'system.html';
+        document.querySelectorAll('.nav-item').forEach(item => {
+            if (item.getAttribute('href') === currentPage || (currentPage === '' && item.getAttribute('href') === 'system.html')) {
+                item.classList.add('active');
+            }
+        });
+
+        // Role-based module visibility
+        document.querySelectorAll('[data-module]').forEach(element => {
+            const module = element.getAttribute('data-module');
+            if (hasModuleAccess(module, 'read')) {
+                element.classList.add('visible');
+            }
+        });
+
+        // Hide nav sections with no visible items
+        document.querySelectorAll('.nav-section').forEach(section => {
+            const hasVisibleItems = section.querySelector('.nav-item.visible') !== null;
+            if (!hasVisibleItems) {
+                section.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
