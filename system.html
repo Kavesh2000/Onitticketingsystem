@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -356,9 +355,205 @@
 
         document.getElementById('ticketFormEl').addEventListener('submit', function(e){ e.preventDefault(); const id='TICK-'+Math.random().toString(36).slice(2,9).toUpperCase(); const ticket={ id, subject:document.getElementById('ticketSubject').value, description:document.getElementById('ticketDescription').value, priority:document.getElementById('ticketPriority').value||'Low', status:'Open', email:localStorage.getItem('userEmail'), timestamp:new Date().toISOString() }; const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); tickets.push(ticket); localStorage.setItem('tickets', JSON.stringify(tickets)); hideNewTicketForm(); this.reset(); loadTickets(); updateStats(); alert('Ticket submitted: '+id); });
 
-        function loadLeaveRequests(){ const reqs=JSON.parse(localStorage.getItem('leaveRequests')||'[]'); const isAdmin=localStorage.getItem('isAdmin')==='true'; const userEmail=localStorage.getItem('userEmail'); const filtered=isAdmin?reqs:reqs.filter(r=>r.email===userEmail); const tbody=document.getElementById('leaveList'); if(filtered.length===0){ tbody.innerHTML='<tr><td colspan="4" class="p-4 text-center">No leave requests</td></tr>'; return; } tbody.innerHTML=filtered.map(r=>`<tr><td class="p-2">${r.id}</td><td class="p-2">${r.type}</td><td class="p-2">${r.days}</td><td class="p-2">${r.status}</td></tr>`).join(''); }
+        // Multi-step submission: route to HOD(s) first, then Admin
+        document.getElementById('leaveFormEl').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const id = 'LEAVE-' + Math.random().toString(36).slice(2,9).toUpperCase();
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const userName = localStorage.getItem('userName') || '';
+            // determine user department from stored demo users if available, otherwise fetch users from server
+            const relatedMap = { 'Finance': ['Finance','ICT','Branch','Customer Service'] };
 
-        document.getElementById('leaveFormEl').addEventListener('submit', function(e){ e.preventDefault(); const id='LEAVE-'+Math.random().toString(36).slice(2,9).toUpperCase(); const req={ id, type:document.getElementById('leaveType').value, days:parseInt(document.getElementById('leaveDays').value)||1, status:'Pending', approverDept: 'Admin', email:localStorage.getItem('userEmail'), timestamp:new Date().toISOString() }; const reqs=JSON.parse(localStorage.getItem('leaveRequests')||'[]'); reqs.push(req); localStorage.setItem('leaveRequests', JSON.stringify(reqs)); hideNewLeaveForm(); this.reset(); loadLeaveRequests(); alert('Leave request submitted: '+id); });
+            let demoUsers = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            if (!demoUsers || demoUsers.length === 0) {
+                // fallback to fetching users from backend
+                try {
+                    const resp = await fetch('/api/users');
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data && data.success && Array.isArray(data.users)) {
+                            demoUsers = data.users.map(u => ({ name: u.full_name || u.name || '', email: u.email, role: u.role || u.userRole || '', department: u.department }));
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch /api/users:', e.message);
+                }
+            }
+
+            const currentUser = demoUsers.find(u => u.email === userEmail) || {};
+            const userDept = (currentUser.department || localStorage.getItem('userDept') || 'General').toString().trim();
+            const related = relatedMap[userDept] || [userDept];
+
+            // helper: normalize strings for comparison
+            function _norm(s){ return (s||'').toString().trim().toLowerCase(); }
+            function _isHeadRole(u){ const r=_norm(u.role); return r === 'hod' || r.includes('head') || r.includes('head of') || r.includes('manager'); }
+
+            // collect HOD/viewer emails: any head role within related departments
+            const relatedNorm = related.map(_norm);
+            const viewers = demoUsers.filter(u => _isHeadRole(u) && relatedNorm.includes(_norm(u.department))).map(u => u.email);
+
+            // find primary HOD: prefer same-department head, else first head in related departments
+            let primaryUser = demoUsers.find(u => _isHeadRole(u) && _norm(u.department) === _norm(userDept));
+            if(!primaryUser) primaryUser = demoUsers.find(u => _isHeadRole(u) && relatedNorm.includes(_norm(u.department)));
+            let primaryHOD = primaryUser ? primaryUser.email : null;
+            // fallback: if there are viewers but no primary selected, pick the first viewer
+            if(!primaryHOD && Array.isArray(viewers) && viewers.length > 0) {
+                primaryHOD = viewers[0];
+            }
+
+            const req = {
+                id,
+                type: document.getElementById('leaveType').value,
+                days: parseInt(document.getElementById('leaveDays').value) || 1,
+                email: userEmail,
+                applicantName: userName,
+                department: userDept,
+                approvals: [null, null], // [HOD, Admin]
+                currentStage: 0,
+                status: 'Pending',
+                viewers: viewers,
+                primaryHOD: primaryHOD || null,
+                returnedToApplicant: false,
+                timestamp: new Date().toISOString()
+            };
+
+            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            reqs.push(req);
+            localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+
+            hideNewLeaveForm();
+            this.reset();
+            loadLeaveRequests();
+
+            // notify applicant that request was sent to HOD
+            if (req.primaryHOD) {
+                alert('Leave request submitted and sent to your HOD: ' + req.primaryHOD);
+            } else {
+                alert('Leave request submitted. No HOD found for your department; sent to Admin.');
+            }
+        });
+
+        // Approve/reject helpers (operate by request id)
+        function approveLeaveById(id) {
+            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const idx = reqs.findIndex(r => r.id === id);
+            if (idx === -1) return alert('Request not found');
+            const req = reqs[idx];
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            if (req.currentStage === 0) {
+                // HOD approval: only primary HOD can approve
+                if (userEmail !== req.primaryHOD) return alert('Only the applicant\'s HOD can approve this stage');
+                req.approvals[0] = 'Approved';
+                req.currentStage = 1;
+                req.status = 'Pending';
+                // now visible to Admin
+                req.returnedToApplicant = false;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('HOD approved. Request forwarded to Admin.');
+                loadLeaveRequests();
+                return;
+            }
+
+            if (req.currentStage === 1) {
+                if (!isAdmin) return alert('Only Admin can approve at this stage');
+                req.approvals[1] = 'Approved';
+                req.status = 'Approved';
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('Request fully approved by Admin.');
+                loadLeaveRequests();
+                return;
+            }
+        }
+
+        function rejectLeaveById(id) {
+            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const idx = reqs.findIndex(r => r.id === id);
+            if (idx === -1) return alert('Request not found');
+            const req = reqs[idx];
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            if (req.currentStage === 0) {
+                // HOD rejection: return to applicant, do not send to Admin
+                if (userEmail !== req.primaryHOD) return alert('Only the applicant\'s HOD can reject this stage');
+                req.approvals[0] = 'Rejected';
+                req.status = 'Rejected';
+                req.returnedToApplicant = true;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('HOD rejected the request. Sent back to applicant.');
+                loadLeaveRequests();
+                return;
+            }
+
+            if (req.currentStage === 1) {
+                if (!isAdmin) return alert('Only Admin can reject at this stage');
+                req.approvals[1] = 'Rejected';
+                req.status = 'Rejected';
+                req.returnedToApplicant = true;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('Admin rejected the request. Sent back to applicant.');
+                loadLeaveRequests();
+                return;
+            }
+        }
+
+        // Render leave requests with HOD/Admin approval actions
+        function loadLeaveRequests(){
+            const allReqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const userRole = localStorage.getItem('userRole') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            // Determine which requests to show:
+            // - Applicants see their own requests
+            // - HODs (including 'Head of ...' roles) see requests where they are in the viewers list
+            // - Admin sees requests that have advanced to stage 1 and not returned
+            let filtered = allReqs.filter(r => r.email === userEmail);
+
+            // treat roles like 'Head of Finance' or any role containing 'head' as HOD-like
+            const _roleNorm = (userRole||'').toString().toLowerCase();
+            const isHodLike = _roleNorm === 'hod' || _roleNorm.includes('head') || _roleNorm.includes('head of');
+
+            if (isHodLike) {
+                filtered = allReqs.filter(r => Array.isArray(r.viewers) && r.viewers.includes(userEmail));
+            }
+
+            if (isAdmin) {
+                filtered = allReqs.filter(r => r.currentStage === 1 && r.status === 'Pending' && !r.returnedToApplicant);
+            }
+
+            const tbody = document.getElementById('leaveList');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">No leave requests</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((r) => {
+                const stageInfo = ['HOD','Admin'].map((s,i)=> `${s}: ${r.approvals[i]||'Pending'}`).join(' | ');
+                let actionBtns = '';
+                const userEmailNow = localStorage.getItem('userEmail') || '';
+                const isUserPrimaryHOD = (userEmailNow === r.primaryHOD);
+
+                if (userRole === 'HOD' && r.currentStage === 0 && r.status === 'Pending' && isUserPrimaryHOD) {
+                    actionBtns = `<button onclick="approveLeaveById('${r.id}')" class="px-2 py-1 bg-green-500 text-white rounded mr-2">Approve (HOD)</button><button onclick="rejectLeaveById('${r.id}')" class="px-2 py-1 bg-red-500 text-white rounded">Reject (HOD)</button>`;
+                }
+
+                if (isAdmin && r.currentStage === 1 && r.status === 'Pending') {
+                    actionBtns = `<button onclick="approveLeaveById('${r.id}')" class="px-2 py-1 bg-green-600 text-white rounded mr-2">Approve (Admin)</button><button onclick="rejectLeaveById('${r.id}')" class="px-2 py-1 bg-red-600 text-white rounded">Reject (Admin)</button>`;
+                }
+
+                return `<tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">${r.id}</td>
+                    <td class="px-6 py-4">${r.type}</td>
+                    <td class="px-6 py-4">${r.days}</td>
+                    <td class="px-6 py-4">${r.department || '-'}</td>
+                    <td class="px-6 py-4">${stageInfo}</td>
+                    <td class="px-6 py-4">${actionBtns}</td>
+                </tr>`;
+            }).join('');
+        }
 
         // Expense Claims with Approval Workflow
         function loadClaims() {
@@ -704,1076 +899,6 @@
             alert('Demo users created successfully!\n\nFinance Officer:\nEmail: john.finance@onit.local\nPassword: 1234\n\nHead of Finance:\nEmail: sarah.hof@onit.local\nPassword: 1234\n\nHR Manager:\nEmail: helen.hr@onit.local\nPassword: 1234\n\nHOD Finance:\nEmail: henry.hod.finance@onit.local\nPassword: 1234\n\nHOD IT:\nEmail: irene.hod.it@onit.local\nPassword: 1234\n\nHOD Ops:\nEmail: olivia.hod.ops@onit.local\nPassword: 1234');
             loadUsers();
         }
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onit Portal - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .sidebar-link {
-            transition: all 0.3s ease;
-        }
-        .sidebar-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-        .sidebar-link.active {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-left: 4px solid white;
-        }
-        .content-section {
-            display: none;
-        }
-        .content-section.active {
-            display: block;
-        }
-    </style>
-</head>
-<body class="bg-gray-100">
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="w-64 bg-gradient-to-b from-teal-700 to-teal-900 text-white p-6">
-            <h1 class="text-2xl font-bold mb-8">Onit Portal</h1>
-            
-            <div class="mb-4 pb-4 border-b border-teal-600">
-                <p class="text-sm text-teal-100">Logged in as:</p>
-                <p id="userNameDisplay" class="font-semibold"></p>
-                <p id="userTypeDisplay" class="text-xs text-teal-200"></p>
-            </div>
-
-            <nav class="space-y-2">
-                <button onclick="switchSection('dashboard')" class="sidebar-link active w-full text-left px-4 py-3 rounded transition">
-                    📊 Dashboard
-                </button>
-                <button onclick="switchSection('tickets')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
-                    🎫 Tickets
-                </button>
-                <button onclick="switchSection('leave')" class="sidebar-link w-full text-left px-4 py-3 rounded transition">
-                    🏖️ Leave Management
-                </button>
-            </nav>
-
-            <div class="mt-8 pt-8 border-t border-teal-600">
-                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
-                    🚪 Logout
-                </button>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 overflow-auto">
-            <!-- Dashboard -->
-            <div id="dashboard" class="content-section active">
-                <div class="p-8">
-                    <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-lg font-semibold mb-4">📊 Quick Stats</h3>
-                            <div class="space-y-2">
-                                <p>Total Tickets: <span id="totalTickets" class="font-bold">0</span></p>
-                                <p>Open Tickets: <span id="openTickets" class="font-bold text-blue-600">0</span></p>
-                                <p>Leave Balance: <span id="leaveBalance" class="font-bold text-green-600">-</span></p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-6 rounded-lg shadow">
-                            <h3 class="text-lg font-semibold mb-4">ℹ️ User Information</h3>
-                            <div class="space-y-2">
-                                <p>Name: <span id="infoName" class="font-semibold">-</span></p>
-                                <p>Email: <span id="infoEmail" class="font-semibold">-</span></p>
-                                <p>Account Type: <span id="infoType" class="font-semibold">-</span></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tickets Section -->
-            <div id="tickets" class="content-section">
-                <div class="p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-bold">Tickets</h2>
-                        <button onclick="showNewTicketForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                            + New Ticket
-                        </button>
-                    </div>
-
-                    <!-- New Ticket Form -->
-                    <div id="newTicketForm" class="hidden bg-white p-6 rounded-lg shadow mb-6">
-                        <h3 class="text-xl font-semibold mb-4">Submit New Ticket</h3>
-                        <form id="ticketFormEl" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Issue Type</label>
-                                    <select id="ticketType" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">Select Type</option>
-                                        <option value="Request">Request</option>
-                                        <option value="Issue">Issue</option>
-                                        <option value="Bug">Bug</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Priority</label>
-                                    <select id="ticketPriority" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                        <option value="">Select Priority</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                        <option value="Critical">Critical</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Subject</label>
-                                <input type="text" id="ticketSubject" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Brief description">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Description</label>
-                                <textarea id="ticketDescription" required rows="4" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Detailed description"></textarea>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Submit Ticket</button>
-                                <button type="button" onclick="hideNewTicketForm()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Tickets List -->
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-200">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Ticket ID</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Subject</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Priority</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ticketsList" class="divide-y">
-                                    <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets yet</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Leave Management -->
-            <div id="leave" class="content-section">
-                <div class="p-8">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-3xl font-bold">Leave Management</h2>
-                        <button onclick="showNewLeaveForm()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-                            + Request Leave
-                        </button>
-                    </div>
-
-                    <!-- Leave Balances -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-blue-100 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600">Annual Leave</p>
-                            <p id="annualBalance" class="text-2xl font-bold text-blue-600">-</p>
-                        </div>
-                        <div class="bg-yellow-100 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600">Sick Leave</p>
-                            <p id="sickBalance" class="text-2xl font-bold text-yellow-600">-</p>
-                        </div>
-                        <div class="bg-purple-100 p-4 rounded-lg">
-                            <p class="text-sm text-gray-600">Personal Leave</p>
-                            <p id="personalBalance" class="text-2xl font-bold text-purple-600">-</p>
-                        </div>
-                    </div>
-
-                    <!-- New Leave Request Form -->
-                    <div id="newLeaveForm" class="hidden bg-white p-6 rounded-lg shadow mb-6">
-                        <h3 class="text-xl font-semibold mb-4">Request Leave</h3>
-                        <form id="leaveFormEl" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Leave Type</label>
-                                    <select id="leaveType" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                                        <option value="">Select Type</option>
-                                        <option value="Annual">Annual Leave</option>
-                                        <option value="Sick">Sick Leave</option>
-                                        <option value="Personal">Personal Leave</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Number of Days</label>
-                                    <input type="number" id="leaveDays" required min="1" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">Start Date</label>
-                                    <input type="date" id="leaveStartDate" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium mb-1">End Date</label>
-                                    <input type="date" id="leaveEndDate" required class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium mb-1">Reason</label>
-                                <textarea id="leaveReason" rows="3" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Reason for leave (optional)"></textarea>
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Submit Request</button>
-                                <button type="button" onclick="hideNewLeaveForm()" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Leave Requests List -->
-                    <div class="bg-white rounded-lg shadow overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="w-full">
-                                <thead class="bg-gray-200">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Request ID</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Days</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Start Date</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
-                                        <th class="px-6 py-3 text-left text-sm font-semibold">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="leaveList" class="divide-y">
-                                    <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">No leave requests yet</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function switchSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Remove active class from all links
-            document.querySelectorAll('.sidebar-link').forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById(sectionId).classList.add('active');
-            
-            // Add active class to clicked link
-            event.target.classList.add('active');
-        }
-
-        function showNewTicketForm() {
-            document.getElementById('newTicketForm').classList.remove('hidden');
-        }
-
-        function hideNewTicketForm() {
-            document.getElementById('newTicketForm').classList.add('hidden');
-        }
-
-        function showNewLeaveForm() {
-            document.getElementById('newLeaveForm').classList.remove('hidden');
-        }
-
-        function hideNewLeaveForm() {
-            document.getElementById('newLeaveForm').classList.add('hidden');
-        }
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'index.html';
-        }
-
-        // Initialize dashboard
-        window.addEventListener('load', function() {
-            if (!localStorage.getItem('userId')) {
-                window.location.href = 'index.html';
-                return;
-            }
-            initDashboard();
-            loadTickets();
-            loadLeaveData();
-        });
-
-        function initDashboard() {
-            const userName = localStorage.getItem('userName') || 'User';
-            const userEmail = localStorage.getItem('userEmail') || 'N/A';
-            const userType = localStorage.getItem('isAdmin') === 'true' ? 'Admin' : 'User';
-
-            document.getElementById('userNameDisplay').textContent = userName;
-            document.getElementById('userTypeDisplay').textContent = userType;
-            document.getElementById('infoName').textContent = userName;
-            document.getElementById('infoEmail').textContent = userEmail;
-            document.getElementById('infoType').textContent = userType;
-
-            updateQuickStats();
-        }
-
-        function updateQuickStats() {
-            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-            const openCount = tickets.filter(t => t.status === 'Open').length;
-            document.getElementById('totalTickets').textContent = tickets.length;
-            document.getElementById('openTickets').textContent = openCount;
-        }
-
-        function loadTickets() {
-            const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-            const userEmail = localStorage.getItem('userEmail');
-            const isAdmin = localStorage.getItem('isAdmin') === 'true';
-            
-            // Filter tickets based on user type
-            let filteredTickets = isAdmin ? tickets : tickets.filter(t => t.email === userEmail);
-            
-            const tbody = document.getElementById('ticketsList');
-            
-            if (filteredTickets.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">No tickets</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = filteredTickets.map(ticket => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 font-semibold">${ticket.id}</td>
-                    <td class="px-6 py-4">${ticket.subject || ticket.type}</td>
-                    <td class="px-6 py-4">${ticket.type}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 rounded text-sm font-semibold ${getPriorityClass(ticket.priority)}">
-                            ${ticket.priority}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 rounded text-sm font-semibold ${getStatusClass(ticket.status)}">
-                            ${ticket.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">${new Date(ticket.timestamp).toLocaleDateString()}</td>
-                    <td class="px-6 py-4">
-                        <button onclick="viewTicket('${ticket.id}')" class="text-blue-600 hover:underline">View</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function loadLeaveData() {
-            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
-            const userId = localStorage.getItem('userId');
-            const employee = employees.find(e => e.id === userId);
-
-            if (employee && employee.leaveBalances) {
-                document.getElementById('annualBalance').textContent = employee.leaveBalances.annual || 0;
-                document.getElementById('sickBalance').textContent = employee.leaveBalances.sick || 0;
-                document.getElementById('personalBalance').textContent = employee.leaveBalances.personal || 0;
-                document.getElementById('leaveBalance').textContent = (employee.leaveBalances.annual || 0) + ' days';
-            }
-
-            loadLeaveRequests();
-        }
-
-        function loadLeaveRequests() {
-            const requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
-            const userEmail = localStorage.getItem('userEmail');
-            const isAdmin = localStorage.getItem('isAdmin') === 'true';
-            
-            let filteredRequests = isAdmin ? requests : requests.filter(r => r.email === userEmail);
-            
-            const tbody = document.getElementById('leaveList');
-            
-            if (filteredRequests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No leave requests</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = filteredRequests.map(req => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 font-semibold">${req.id}</td>
-                    <td class="px-6 py-4">${req.type}</td>
-                    <td class="px-6 py-4">${req.days}</td>
-                    <td class="px-6 py-4">${new Date(req.startDate).toLocaleDateString()}</td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 rounded text-sm font-semibold ${getRequestStatusClass(req.status)}">
-                            ${req.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">${new Date(req.timestamp).toLocaleDateString()}</td>
-                </tr>
-            `).join('');
-        }
-
-        function getPriorityClass(priority) {
-            const classes = {
-                'Critical': 'bg-red-200 text-red-800',
-                'High': 'bg-orange-200 text-orange-800',
-                'Medium': 'bg-yellow-200 text-yellow-800',
-                'Low': 'bg-green-200 text-green-800'
-            };
-            return classes[priority] || 'bg-gray-200 text-gray-800';
-        }
-
-        function getStatusClass(status) {
-            const classes = {
-                'Open': 'bg-blue-200 text-blue-800',
-                'In Progress': 'bg-purple-200 text-purple-800',
-                'Resolved': 'bg-green-200 text-green-800',
-                'Closed': 'bg-gray-200 text-gray-800'
-            };
-            return classes[status] || 'bg-gray-200 text-gray-800';
-        }
-
-        function getRequestStatusClass(status) {
-            const classes = {
-                'Pending': 'bg-yellow-200 text-yellow-800',
-                'Approved': 'bg-green-200 text-green-800',
-                'Rejected': 'bg-red-200 text-red-800'
-            };
-            return classes[status] || 'bg-gray-200 text-gray-800';
-        }
-
-        function viewTicket(ticketId) {
-            alert('Viewing ticket: ' + ticketId);
-        }
-
-        // Handle ticket form submission
-        document.getElementById('ticketFormEl').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const ticketId = 'TICK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            const ticket = {
-                id: ticketId,
-                type: document.getElementById('ticketType').value,
-                subject: document.getElementById('ticketSubject').value,
-                description: document.getElementById('ticketDescription').value,
-                priority: document.getElementById('ticketPriority').value,
-                status: 'Open',
-                email: localStorage.getItem('userEmail'),
-                timestamp: new Date().toISOString()
-            };
-
-            let tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
-            tickets.push(ticket);
-            localStorage.setItem('tickets', JSON.stringify(tickets));
-
-            hideNewTicketForm();
-            this.reset();
-            loadTickets();
-            updateQuickStats();
-            alert('Ticket submitted successfully! ID: ' + ticketId);
-        });
-
-        // Handle leave request form submission
-        document.getElementById('leaveFormEl').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const leaveId = 'LEAVE-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-            const request = {
-                id: leaveId,
-                type: document.getElementById('leaveType').value,
-                days: parseInt(document.getElementById('leaveDays').value),
-                startDate: document.getElementById('leaveStartDate').value,
-                endDate: document.getElementById('leaveEndDate').value,
-                reason: document.getElementById('leaveReason').value,
-                status: 'Pending',
-                email: localStorage.getItem('userEmail'),
-                timestamp: new Date().toISOString()
-            };
-
-            let requests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
-            requests.push(request);
-            localStorage.setItem('leaveRequests', JSON.stringify(requests));
-
-            hideNewLeaveForm();
-            this.reset();
-            loadLeaveRequests();
-            alert('Leave request submitted! ID: ' + leaveId);
-        });
-    </script>
-</body>
-</html>
-        body {
-            background: #F8FAFC;
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 280px;
-            height: 100vh;
-            background: linear-gradient(135deg, #0A2540 0%, #0F766E 100%);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-        }
-        
-        .sidebar.closed {
-            transform: translateX(-100%);
-        }
-        
-        .sidebar-header {
-            padding: 25px 20px;
-            background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .sidebar-logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: #F8FAFC;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .sidebar-nav {
-            padding: 20px 0;
-        }
-        
-        .nav-section {
-            margin-bottom: 10px;
-            padding: 0 15px;
-        }
-        
-        .nav-section-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: rgba(248,250,252,0.6);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 15px 0 10px 0;
-        }
-        
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            margin-bottom: 5px;
-            border-radius: 8px;
-            color: rgba(248,250,252,0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
-            color: #F8FAFC;
-            padding-left: 20px;
-        }
-        
-        .nav-item.active {
-            background: rgba(255,255,255,0.2);
-            color: #FEF08A;
-            border-left: 3px solid #FEF08A;
-            padding-left: 12px;
-        }
-        
-        .nav-item i {
-            width: 20px;
-            text-align: center;
-            font-size: 16px;
-        }
-        
-        .sidebar-footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            background: rgba(0,0,0,0.2);
-        }
-        
-        .logout-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 10px 15px;
-            background: #DC2626;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-        
-        .logout-btn:hover {
-            background: #B91C1C;
-            transform: translateX(5px);
-        }
-        
-        /* Header Styles */
-        .header {
-            margin-left: 280px;
-            background: white;
-            border-bottom: 1px solid #E2E8F0;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: margin-left 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        
-        .header.expanded {
-            margin-left: 0;
-        }
-        
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .hamburger {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #0A2540;
-            transition: all 0.3s ease;
-        }
-        
-        .hamburger:hover {
-            color: #0F766E;
-        }
-        
-        .header-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #0A2540;
-            margin: 0;
-        }
-        
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .user-info {
-            text-align: right;
-        }
-        
-        .user-name {
-            font-weight: 600;
-            color: #0A2540;
-            font-size: 14px;
-        }
-        
-        .user-role {
-            font-size: 12px;
-            color: #64748B;
-        }
-        
-        /* Main Content */
-        .main-content {
-            margin-left: 280px;
-            padding: 40px 30px;
-            transition: margin-left 0.3s ease;
-        }
-        
-        .main-content.expanded {
-            margin-left: 0;
-        }
-        
-        /* Overlay for mobile */
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-        
-        .overlay.active {
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                max-width: 280px;
-            }
-            
-            .header {
-                margin-left: 0;
-            }
-            
-            .header.expanded {
-                margin-left: 0;
-            }
-            
-            .hamburger {
-                display: block;
-            }
-            
-            .main-content {
-                margin-left: 0;
-                padding: 20px;
-            }
-            
-            .header-title {
-                font-size: 18px;
-            }
-        }
-    </style>
-</head>
-<body class="text-gray-800">
-    <!-- Overlay -->
-    <div id="overlay" class="overlay"></div>
-    
-    <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fas fa-building"></i>
-                <span>Onit MFB</span>
-            </div>
-        </div>
-        
-        <nav class="sidebar-nav">
-            <!-- Ticketing Module -->
-            <div class="nav-section">
-                <div class="nav-section-title">Core Modules</div>
-                <a href="submit.html" class="nav-item" data-page="submit">
-                    <i class="fas fa-ticket-alt"></i>
-                    <span>Submit Ticket</span>
-                </a>
-                <a href="tickets.html" class="nav-item" data-page="tickets">
-                    <i class="fas fa-list"></i>
-                    <span>View Tickets</span>
-                </a>
-                <a href="leave-management.html" class="nav-item" data-page="leave-management" data-module="leave-management">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Leave Management</span>
-                </a>
-            </div>
-            
-            <!-- Finance Module -->
-            <div class="nav-section">
-                <div class="nav-section-title">Finance</div>
-                <div class="nav-section" data-module="finance">
-                <a href="finance.html" class="nav-item" data-page="finance" data-module="finance">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Reconciliation</span>
-                </a>
-                </div>
-            </div>
-            
-            <!-- Admin & Management -->
-            <div class="nav-section">
-                <div class="nav-section-title">Management</div>
-                <a href="users.html" class="nav-item" data-page="users" data-module="users">
-                    <i class="fas fa-users"></i>
-                    <span>Users & Roles</span>
-                </a>
-                <a href="admin.html" class="nav-item" data-page="admin" data-module="admin">
-                    <i class="fas fa-cog"></i>
-                    <span>Admin Panel</span>
-                </a>
-                <a href="hr.html" id="hrNav" class="nav-item hidden" data-page="hr" data-module="hr">
-                    <i class="fas fa-user-tie"></i>
-                    <span>HR Portal</span>
-                </a>
-                <a href="hod.html" id="hodNav" class="nav-item hidden" data-page="hod" data-module="hod">
-                    <i class="fas fa-user-shield"></i>
-                    <span>HOD Portal</span>
-                </a>
-                <a href="password-reset.html" class="nav-item" data-page="password-reset" data-module="password-reset">
-                    <i class="fas fa-key"></i>
-                    <span>Password Reset</span>
-                </a>
-                <a href="purchases.html" class="nav-item" data-page="purchases" data-module="purchases">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Purchases</span>
-                </a>
-            </div>
-            
-            <!-- Compliance & Reporting -->
-            <div class="nav-section">
-                <div class="nav-section-title">Compliance</div>
-                <a href="audit.html" class="nav-item" data-page="audit" data-module="audit">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Audit & Compliance</span>
-                </a>
-                <a href="reports.html" class="nav-item" data-page="reports" data-module="reporting">
-                    <i class="fas fa-file-chart-line"></i>
-                    <span>Reports & Analytics</span>
-                </a>
-            </div>
-            
-            <!-- Security -->
-            <div class="nav-section">
-                <div class="nav-section-title">Security</div>
-                <a href="iam.html" class="nav-item" data-page="iam" data-module="iam">
-                    <i class="fas fa-user-shield"></i>
-                    <span>Identity & Access Management</span>
-                </a>
-                <a href="pam.html" class="nav-item" data-page="pam" data-module="pam">
-                    <i class="fas fa-key"></i>
-                    <span>Privileged Access Management</span>
-                </a>
-                <a href="security-incident.html" class="nav-item" data-page="security-incident" data-module="security-incident">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>Security Incident Management</span>
-                </a>
-                <a href="vulnerability.html" class="nav-item" data-page="vulnerability" data-module="vulnerability">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Vulnerability Management</span>
-                </a>
-                <a href="policy-compliance.html" class="nav-item" data-page="policy-compliance" data-module="policy-compliance">
-                    <i class="fas fa-file-contract"></i>
-                    <span>Policy & Compliance</span>
-                </a>
-                <a href="security-dashboard.html" class="nav-item" data-page="security-dashboard" data-module="security-dashboard">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Security Dashboards</span>
-                </a>
-            </div>
-            
-            <!-- Data Analysis -->
-            <div class="nav-section">
-                <div class="nav-section-title">Data Analysis</div>
-                <a href="data-integration.html" class="nav-item" data-page="data-integration" data-module="data-integration">
-                    <i class="fas fa-database"></i>
-                    <span>Data Integration</span>
-                </a>
-                <a href="data-warehouse.html" class="nav-item" data-page="data-warehouse" data-module="data-warehouse">
-                    <i class="fas fa-server"></i>
-                    <span>Data Warehouse</span>
-                </a>
-                <a href="analytics-bi.html" class="nav-item" data-page="analytics-bi" data-module="analytics-bi">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Analytics & BI Dashboards</span>
-                </a>
-                <a href="data-governance.html" class="nav-item" data-page="data-governance" data-module="data-governance">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Data Governance</span>
-                </a>
-            </div>
-            
-            <!-- System -->
-            <div class="nav-section">
-                <div class="nav-section-title">System</div>
-                <a href="config.html" class="nav-item" data-page="config" data-module="config">
-                    <i class="fas fa-sliders-h"></i>
-                    <span>Configuration</span>
-                </a>
-                <a href="inventory.html" class="nav-item" data-page="inventory" data-module="inventory">
-                    <i class="fas fa-boxes"></i>
-                    <span>Inventory</span>
-                </a>
-                <a href="notifications.html" class="nav-item" data-page="notifications">
-                    <i class="fas fa-bell"></i>
-                    <span>Notifications</span>
-                </a>
-            </div>
-        </nav>
-        
-        <div class="sidebar-footer">
-            <button class="logout-btn" id="logout">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </button>
-        </div>
-    </aside>
-    
-    <!-- Header -->
-    <header id="header" class="header">
-        <div class="header-left">
-            <button id="hamburger" class="hamburger" title="Toggle Menu">
-                <i class="fas fa-bars"></i>
-            </button>
-            <h1 class="header-title">Dashboard</h1>
-        </div>
-        <div class="header-right">
-            <div class="user-info">
-                <div class="user-name" id="userName">User</div>
-                <div class="user-role" id="userRole">Department</div>
-            </div>
-        </div>
-    </header>
-
-    
-    <!-- Main Content -->
-    <main id="mainContent" class="main-content">
-        <section class="text-center mb-12">
-            <h2 class="text-4xl font-bold mb-4 text-gray-900">Welcome to Onit MFB</h2>
-            <p class="text-xl text-gray-600">Enterprise Banking Support System</p>
-        </section>
-
-        <section class="grid md:grid-cols-3 gap-8 mb-12">
-            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-teal-600 hover:shadow-xl transition">
-                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
-                    <i class="fas fa-ticket-alt text-teal-600"></i>
-                    Open Tickets
-                </h3>
-                <p class="text-4xl font-bold text-teal-600" id="openCount">0</p>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-amber-600 hover:shadow-xl transition">
-                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
-                    <i class="fas fa-hourglass-half text-amber-600"></i>
-                    In Progress
-                </h3>
-                <p class="text-4xl font-bold text-amber-600" id="progressCount">0</p>
-            </div>
-            <div class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-green-600 hover:shadow-xl transition">
-                <h3 class="text-lg font-bold mb-2 text-gray-900 flex items-center gap-2">
-                    <i class="fas fa-check-circle text-green-600"></i>
-                    Closed This Month
-                </h3>
-                <p class="text-4xl font-bold text-green-600" id="closedCount">0</p>
-            </div>
-        </section>
-
-        <section class="text-center">
-            <a href="submit.html" class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-8 py-4 rounded-lg font-semibold hover:shadow-lg transition inline-flex items-center gap-2">
-                <i class="fas fa-plus"></i>
-                Submit a New Ticket
-            </a>
-        </section>
-    </main>
-
-    <footer class="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 py-4 text-center text-sm text-gray-600 transition" style="margin-left: 280px;">
-        <p>&copy; 2026 Onit Microfinance Bank. All rights reserved.</p>
-    </footer>
-    
-    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
-    <script src="script.js"></script>
-    <script>
-        // Check login
-        if (!localStorage.getItem('userDept')) {
-            window.location.href = 'index.html';
-        }
-
-        // Set user info
-        const userName = localStorage.getItem('userName');
-        const dept = localStorage.getItem('userDept');
-
-        // Generate username from full name
-        const generateUsername = (fullName) => {
-            const parts = fullName.split(' ');
-            if (parts.length >= 2) {
-                return (parts[0][0] + parts[parts.length - 1]).toUpperCase();
-            }
-            return fullName.toUpperCase();
-        };
-
-        const username = generateUsername(userName);
-        document.getElementById('userName').textContent = username;
-        document.getElementById('userRole').textContent = dept;
-
-        // Hamburger menu toggle
-        const hamburger = document.getElementById('hamburger');
-        const sidebar = document.getElementById('sidebar');
-        const header = document.getElementById('header');
-        const mainContent = document.getElementById('mainContent');
-        const overlay = document.getElementById('overlay');
-
-        hamburger.addEventListener('click', function() {
-            sidebar.classList.toggle('closed');
-            header.classList.toggle('expanded');
-            mainContent.classList.toggle('expanded');
-            overlay.classList.toggle('active');
-        });
-
-        // Close menu when clicking overlay
-        overlay.addEventListener('click', function() {
-            sidebar.classList.add('closed');
-            header.classList.remove('expanded');
-            mainContent.classList.remove('expanded');
-            overlay.classList.remove('active');
-        });
-
-        // Close menu when clicking on nav items (mobile)
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.add('closed');
-                    header.classList.remove('expanded');
-                    mainContent.classList.remove('expanded');
-                    overlay.classList.remove('active');
-                }
-            });
-        });
-
-        // Logout
-        document.getElementById('logout').addEventListener('click', function() {
-            localStorage.removeItem('userDept');
-            window.location.href = 'index.html';
-        });
-
-        // Update dashboard
-        function updateDashboard() {
-            const tickets = getTickets ? getTickets() : [];
-            const open = tickets.filter(t => t.status === 'Open').length;
-            const progress = tickets.filter(t => t.status === 'In Progress').length;
-            const closed = tickets.filter(t => {
-                if (t.status === 'Closed') {
-                    const date = new Date(t.timestamp);
-                    const now = new Date();
-                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-                }
-                return false;
-            }).length;
-            document.getElementById('openCount').textContent = open;
-            document.getElementById('progressCount').textContent = progress;
-            document.getElementById('closedCount').textContent = closed;
-        }
-
-        updateDashboard();
-
-        // Highlight active nav item
-        const currentPage = window.location.pathname.split('/').pop() || 'system.html';
-        document.querySelectorAll('.nav-item').forEach(item => {
-            if (item.getAttribute('href') === currentPage || (currentPage === '' && item.getAttribute('href') === 'system.html')) {
-                item.classList.add('active');
-            }
-        });
-
-        // Role-based module visibility
-        document.querySelectorAll('[data-module]').forEach(element => {
-            const module = element.getAttribute('data-module');
-            if (hasModuleAccess(module, 'read')) {
-                element.classList.add('visible');
-            }
-        });
-
-        // Hide nav sections with no visible items
-        document.querySelectorAll('.nav-section').forEach(section => {
-            const hasVisibleItems = section.querySelector('.nav-item.visible') !== null;
-            if (!hasVisibleItems) {
-                section.style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
