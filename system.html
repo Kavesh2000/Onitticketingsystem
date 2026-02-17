@@ -219,6 +219,8 @@
                             <option value="User">User</option>
                             <option value="Finance Officer">Finance Officer</option>
                             <option value="Head of Finance">Head of Finance</option>
+                            <option value="HR">HR</option>
+                            <option value="HOD">HOD</option>
                         </select>
                         
                         <select id="newUserDept" class="p-3 border rounded">
@@ -323,6 +325,16 @@
             // Show approval nav for Finance Officer/Head of Finance/Admin
             if(userRole === 'Finance Officer' || userRole === 'Head of Finance' || localStorage.getItem('isAdmin')==='true') {
                 document.getElementById('approvalNav').classList.remove('hidden');
+            }
+            // Show HR portal nav when someone with HR role logs in
+            if(userRole === 'HR' || localStorage.getItem('isAdmin')==='true') {
+                const hrNav = document.getElementById('hrNav');
+                if(hrNav) hrNav.classList.remove('hidden');
+            }
+            // Show HOD portal nav to HOD users or admins
+            if(userRole === 'HOD' || localStorage.getItem('isAdmin')==='true') {
+                const hodNav = document.getElementById('hodNav');
+                if(hodNav) hodNav.classList.remove('hidden');
             }
             
             // Initialize workflow for expense claims
@@ -653,11 +665,43 @@
                     department: 'Finance',
                     password: '1234',
                     createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Helen HR Manager',
+                    email: 'helen.hr@onit.local',
+                    role: 'HR',
+                    department: 'HR',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Henry HOD Finance',
+                    email: 'henry.hod.finance@onit.local',
+                    role: 'HOD',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Irene HOD IT',
+                    email: 'irene.hod.it@onit.local',
+                    role: 'HOD',
+                    department: 'IT',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Olivia HOD Operations',
+                    email: 'olivia.hod.ops@onit.local',
+                    role: 'HOD',
+                    department: 'Operations',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
                 }
             ];
 
             localStorage.setItem('financeUsers', JSON.stringify(demoUsers));
-            alert('Demo users created successfully!\n\nFinance Officer:\nEmail: john.finance@onit.local\nPassword: 1234\n\nHead of Finance:\nEmail: sarah.hof@onit.local\nPassword: 1234');
+            alert('Demo users created successfully!\n\nFinance Officer:\nEmail: john.finance@onit.local\nPassword: 1234\n\nHead of Finance:\nEmail: sarah.hof@onit.local\nPassword: 1234\n\nHR Manager:\nEmail: helen.hr@onit.local\nPassword: 1234\n\nHOD Finance:\nEmail: henry.hod.finance@onit.local\nPassword: 1234\n\nHOD IT:\nEmail: irene.hod.it@onit.local\nPassword: 1234\n\nHOD Ops:\nEmail: olivia.hod.ops@onit.local\nPassword: 1234');
             loadUsers();
         }
     </script>
@@ -1454,6 +1498,14 @@
                 <a href="admin.html" class="nav-item" data-page="admin" data-module="admin">
                     <i class="fas fa-cog"></i>
                     <span>Admin Panel</span>
+                </a>
+                <a href="hr.html" id="hrNav" class="nav-item hidden" data-page="hr" data-module="hr">
+                    <i class="fas fa-user-tie"></i>
+                    <span>HR Portal</span>
+                </a>
+                <a href="hod.html" id="hodNav" class="nav-item hidden" data-page="hod" data-module="hod">
+                    <i class="fas fa-user-shield"></i>
+                    <span>HOD Portal</span>
                 </a>
                 <a href="password-reset.html" class="nav-item" data-page="password-reset" data-module="password-reset">
                     <i class="fas fa-key"></i>

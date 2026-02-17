@@ -239,6 +239,7 @@
                             <select id="filterStatus" class="px-3 py-2 border border-gray-300 rounded-md">
                                 <option value="all">All Status</option>
                                 <option value="pending">Pending</option>
+                                <option value="hod-approved">HOD Approved</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
                                 <option value="cancelled">Cancelled</option>
@@ -663,7 +664,8 @@
                     id: localStorage.getItem('userId'),
                     email: localStorage.getItem('userEmail'),
                     name: localStorage.getItem('userName'),
-                    dept: localStorage.getItem('userDept')
+                    dept: localStorage.getItem('userDept'),
+                    role: localStorage.getItem('userRole')
                 };
 
                 // Check if user is logged in
@@ -674,7 +676,8 @@
                 }
 
                 this.isAdmin = localStorage.getItem('isAdmin') === 'true' || this.currentUser.dept === 'admin' || this.currentUser.dept === 'Management';
-                console.log('User initialized:', this.currentUser, 'isAdmin:', this.isAdmin);
+                this.isHod = this.currentUser.role === 'HOD';
+                console.log('User initialized:', this.currentUser, 'isAdmin:', this.isAdmin, 'isHod:', this.isHod);
 
                 // Email service configuration
                 this.emailServiceUrl = 'http://localhost:3001/api/email/send';
@@ -683,34 +686,11 @@
             }
 
             // Email functionality
+            // stubbed out: disable all automated emails until further notice
             async sendEmail(to, template, data) {
-                try {
-                    const response = await fetch(this.emailServiceUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            to: to,
-                            template: template,
-                            data: data
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        console.log('Email sent successfully:', result.messageId);
-                        return true;
-                    } else {
-                        console.error('Email sending failed:', result.error);
-                        return false;
-                    }
-                } catch (error) {
-                    console.error('Email service error:', error);
-                    // Don't block the UI if email fails - just log the error
-                    return false;
-                }
+                console.log('[email suppressed] to:', to, 'template:', template, 'data:', data);
+                // simulate success so callers continue unchanged
+                return true;
             }
 
             async sendLeaveNotification(request, action) {
@@ -734,7 +714,6 @@
 
                 // Send notification to admin/HR if this is a submission
                 if (action === 'submitted') {
-                    // Find admin users to notify
                     const adminUsers = this.employees.filter(e => e.department === 'admin' || e.department === 'Management');
                     for (const admin of adminUsers) {
                         await this.sendEmail(admin.email, 'generalNotification', {
@@ -746,6 +725,23 @@
                                 <p><strong>Type:</strong> ${request.type}</p>
                                 <p><strong>Duration:</strong> ${request.startDate} to ${request.endDate} (${request.days} days)</p>
                                 <p><strong>Reason:</strong> ${request.reason}</p>
+                                <p>Please review this request in the Leave Management System.</p>
+                            `
+                        });
+                    }
+                }
+                // notify admin when HOD approves so they can take final action
+                if (action === 'hod-approved') {
+                    const adminUsers = this.employees.filter(e => e.department === 'admin' || e.department === 'Management');
+                    for (const admin of adminUsers) {
+                        await this.sendEmail(admin.email, 'generalNotification', {
+                            title: 'Leave Request HOD Approved',
+                            subject: 'Leave Request Awaiting Final Approval - Maisha Bank',
+                            message: `
+                                <p><strong>Leave request has been HOD approved:</strong></p>
+                                <p><strong>Employee:</strong> ${request.employeeName} (${request.department})</p>
+                                <p><strong>Type:</strong> ${request.type}</p>
+                                <p><strong>Duration:</strong> ${request.startDate} to ${request.endDate} (${request.days} days)</p>
                                 <p>Please review this request in the Leave Management System.</p>
                             `
                         });
@@ -773,6 +769,11 @@
                         { id: 'calendar', icon: 'fas fa-calendar-alt', label: 'Calendar' },
                         { id: 'employees', icon: 'fas fa-users', label: 'Employees' },
                         { id: 'reports', icon: 'fas fa-chart-bar', label: 'Reports' }
+                    ];
+                } else if (this.isHod) {
+                    // HOD only manages requests for their department
+                    tabs = [
+                        { id: 'requests', icon: 'fas fa-clipboard-list', label: 'Requests' }
                     ];
                 } else {
                     // Regular user tabs - combined leave balances and submission
@@ -990,7 +991,7 @@
                     id: requestId,
                     employeeId: this.currentUser.id,
                     employeeName: this.currentUser.name,
-                    department: this.currentUser.dept,
+                    department: (localStorage.getItem('userDept') || this.currentUser.dept || '').trim(),
                     type: formData.leaveType,
                     startDate: formData.startDate,
                     endDate: formData.endDate,
@@ -1108,6 +1109,9 @@
                 const username = generateUsername(this.currentUser.name);
                 document.getElementById('userName').textContent = username;
                 document.getElementById('userRole').textContent = this.currentUser.dept;
+
+                // Load and display user's leave balance
+                this.loadUserLeaveBalance();
 
                 // Populate form with user information
                 if (!this.isAdmin) {
@@ -1338,9 +1342,14 @@
                     }
                 });
 
-                // Only update dashboard data if user is admin
-                if (this.isAdmin) {
-                    const pending = this.leaveRequests.filter(r => r.status === 'pending').length;
+                // Only update dashboard data if user is admin or HOD
+                if (this.isAdmin || this.isHod) {
+                    const pending = this.leaveRequests.filter(r => {
+                        if (this.isHod) {
+                            return r.department === this.currentUser.dept && r.status === 'pending';
+                        }
+                        return r.status === 'pending';
+                    }).length;
                     const onLeaveToday = this.getEmployeesOnLeaveToday();
                     const thisWeekLeaves = this.getThisWeekLeaves();
                     const approvalRate = this.calculateApprovalRate();
@@ -1350,10 +1359,12 @@
                     document.getElementById('thisWeekLeaves').textContent = thisWeekLeaves;
                     document.getElementById('approvalRate').textContent = `${approvalRate}%`;
 
-                    this.loadCurrentLeaveStatus();
-                    this.loadRecentActivity();
-                    this.loadEmployeeBalances();
-                    this.loadDepartmentOverview();
+                    if (this.isAdmin) {
+                        this.loadCurrentLeaveStatus();
+                        this.loadRecentActivity();
+                        this.loadEmployeeBalances();
+                        this.loadDepartmentOverview();
+                    }
                 }
             }
 
@@ -1633,6 +1644,12 @@
                 const searchTerm = document.getElementById('searchEmployee').value.toLowerCase();
 
                 let filtered = this.leaveRequests.filter(request => {
+                    // HOD sees only pending requests for their department
+                    if (this.isHod) {
+                        if (request.department !== this.currentUser.dept) return false;
+                        if (request.status !== 'pending') return false;
+                        return true;
+                    }
                     if (statusFilter !== 'all' && request.status !== statusFilter) return false;
                     if (deptFilter !== 'all' && request.department !== deptFilter) return false;
                     if (typeFilter !== 'all' && request.type !== typeFilter) return false;
@@ -1664,10 +1681,10 @@
                                 <span class="px-3 py-1 bg-${this.getStatusColor(request.status)}-100 text-${this.getStatusColor(request.status)}-800 rounded-full text-sm font-medium">
                                     ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                                 </span>
-                                ${request.status === 'pending' ? `
+                                ${(this.isAdmin && (request.status === 'pending' || request.status === 'hod-approved')) ? `
                                     <div class="flex space-x-1">
                                         <button onclick="leaveSystem.approveRequest('${request.id}')" class="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
-                                            <i class="fas fa-check mr-1"></i>Approve
+                                            <i class="fas fa-check mr-1"></i>${request.status==='hod-approved' ? 'Final Approve' : 'Approve'}
                                         </button>
                                         <button onclick="leaveSystem.rejectRequest('${request.id}')" class="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700">
                                             <i class="fas fa-times mr-1"></i>Reject
@@ -1690,6 +1707,19 @@
                 if (!request) return;
 
                 const comments = prompt('Add approval comments (optional):');
+                if (this.isHod && request.status === 'pending') {
+                    // first‑tier approval by department HOD
+                    request.status = 'hod-approved';
+                    request.hodApprovedBy = this.currentUser.name;
+                    request.hodApprovedDate = new Date().toISOString();
+                    if (comments) request.comments.push(`HOD approved: ${comments}`);
+                    this.saveData();
+                    this.filterRequests();
+                    this.addNotification(`${request.employeeName}'s leave request has been HOD approved`, 'info');
+                    this.sendLeaveNotification(request, 'hod-approved');
+                    return;
+                }
+                // admin or final approval path
                 request.status = 'approved';
                 request.approvedBy = this.currentUser.name;
                 request.approvedDate = new Date().toISOString();
@@ -1721,6 +1751,7 @@
                 request.approvedBy = this.currentUser.name;
                 request.approvedDate = new Date().toISOString();
                 request.comments.push(`Rejected: ${reason}`);
+                // no special handling needed - HOD rejection also final
 
                 this.saveData();
                 this.updateDashboard();
@@ -2289,6 +2320,7 @@
             getStatusColor(status) {
                 const colors = {
                     pending: 'yellow',
+                    'hod-approved': 'blue',
                     approved: 'green',
                     rejected: 'red',
                     cancelled: 'gray'

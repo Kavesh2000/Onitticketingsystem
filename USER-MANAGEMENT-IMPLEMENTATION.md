@@ -98,6 +98,10 @@ Enhanced form in admin panel with fields:
   - ICT
   - Operations
   - Customer Service
+  - HR
+  - HOD
+
+  > **HOD** users are heads‑of‑department; they only interact with leave management, performing first‑level approval that then escalates to Admin.
 - **Password** (optional - defaults to Password123!)
 
 ### 2. **JavaScript Functions in script.js**
@@ -223,7 +227,7 @@ Each user object contains:
   "full_name": "string",
   "username": "string (unique)",
   "email": "string (unique, validated)",
-  "role": "string (Admin|Finance Officer|ICT|Operations|Customer Service)",
+  "role": "string (Admin|Finance Officer|ICT|Operations|Customer Service|HR|HOD)",
   "department": "string (ICT|Finance|Branch|Customer Service|Admin)",
   "password": "SHA-256 hash",
   "created_at": "ISO 8601 timestamp",

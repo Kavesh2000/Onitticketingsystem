@@ -3,7 +3,7 @@
 ## What Was Implemented
 
 ### Backend (Node.js)
-✅ **seed_users()** function - Populates database with 23 bank staff across 5 departments
+✅ **seed_users()** function - Populates database with 25 bank staff across multiple departments (includes HR/HOD/Admin accounts)
 ✅ **API Endpoints**:
 - `POST /api/seed-users` - Load initial users
 - `GET /api/users` - Get all users
@@ -31,10 +31,10 @@
 
 ### 1. Run Standalone Seed
 ```bash
-cd "c:\Users\Admin\Desktop\Onit system"
+cd "c:\Users\Admin\Desktop\Onit"
 node seed-users-standalone.js
 ```
-✅ Creates `users.json` with 19 initial users
+✅ Creates/updates `users.json` with 25 test users (all passwords "1234")
 
 ### 2. Start Server
 ```bash
@@ -51,24 +51,18 @@ Open `admin.html` in browser → Go to "Manage Users" section
 
 ## Default Users Created
 
-**ICT Department** (3)
-- stevaniah / stevaniah@maishabank.com
-- mercy / mercy@maishabank.com  
-- eric / eric@maishabank.com
+The standalone seed script now loads a fixed set of 25 users used throughout the demos. All accounts use the simple password `1234`.
 
-**Branch Operations** (5)
-- caroline, lilian, maureen, alice, michael
+Sample breakdown (not exhaustive):
+- **Customer Service**: Alice Martin, Bob Lee, Mohamed Ali
+- **ICT**: Cathy Nguyen, David Kim, Nina Schmidt (+ HOD/ICT account)
+- **Finance**: Eva Patel, Frank O'Connor, Oscar Pérez (+ HOD/Finance account)
+- **HR**: Grace Liu, Henry Adams, Priya Singh, Helen HR
+- **Support**: Ian Wright, Jasmine Torres, Quentin Blake
+- **Branch**: Kyle Brown, Lena Svensson, Ryan Johnson
+- **Admins/Management**: Admin One, Admin Two, Henry (HOD Management)
 
-**Finance** (3)
-- patrick, margaret, elizabeth
-
-**Customer Service** (7)
-- ebby, vivian, juliana, faith, patience, eva, peter
-
-**Admin** (1)
-- admin / admin@maishabank.com
-
-**Default Password**: `Password123!` (for all seeded users)
+Additional HR/HOD/Operations accounts are included for testing role‑based login.  The exact list is defined in `seed-users-standalone.js`.
 
 ## Files Modified
 

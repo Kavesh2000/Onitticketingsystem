@@ -42,7 +42,8 @@ function seed_users() {
     const existingUsernames = new Set(existingUsers.map(u => u.username));
     
     let addedCount = 0;
-    const defaultPassword = "Password123!";
+    // default password used in examples
+    const defaultPassword = "1234";
     const hashedPassword = hashPassword(defaultPassword);
 
     for (const userData of users) {

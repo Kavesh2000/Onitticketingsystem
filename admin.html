@@ -412,7 +412,6 @@
                     <h2 class="text-3xl font-bold mb-6">Manage Users</h2>
                     <div class="mb-4">
                         <button onclick="showNewUserForm()" class="btn btn-primary">+ New User</button>
-                        <button onclick="seedUsersFromBackend()" class="btn btn-secondary ml-2">Seed Initial Users</button>
                     </div>
                     <div id="newUserForm" class="hidden card mb-6">
                         <h3 class="font-semibold mb-3"><span id="formTitle">Create New User</span></h3>
@@ -515,6 +514,18 @@
                                         <option value="Operations">Operations</option>
                                         <option value="Branch Manager">Branch Manager</option>
                                         <option value="ICT Officer">ICT Officer</option>
+                                        <option value="HR">HR</option>
+                                        <option value="HOD">HOD</option>
+                                    </select>
+                                </div>
+                                <div id="departmentFieldContainer" style="display: none;">
+                                    <label class="text-sm font-medium">Department (for HOD role)</label>
+                                    <select id="changeRightsDept" class="w-full p-2 border rounded mt-1">
+                                        <option value="">Select department...</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Branch">Branch</option>
+                                        <option value="ICT">ICT</option>
+                                        <option value="Customer Service">Customer Service</option>
                                     </select>
                                 </div>
                                 <button type="submit" class="w-full btn btn-primary">Assign Role</button>
@@ -601,6 +612,13 @@
             event.target.classList.add('active');
             
             // Load data for specific sections
+            if (sectionId === 'users') {
+                loadUsers();
+            }
+            if (sectionId === 'leave') {
+                loadLeaveRequests();
+                loadLeaveBalances();
+            }
             if (sectionId === 'rights') {
                 loadChangeRightsUsers();
             }
@@ -757,76 +775,104 @@
         }
 
         // --- Leave Balance Management Functions ---
-        function loadLeaveBalances() {
-            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
-            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+        async function loadLeaveBalances() {
             const tbody = document.getElementById('leaveBalancesTable');
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>';
             
-            if (!employees || employees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No users</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = employees.map(emp => {
-                const bal = emp.leaveBalances || { annual: 0, sick: 0, personal: 0 };
-                // Count recent approvals for this employee
-                const approvedRequests = leaveRequests.filter(r => r.email === emp.email && r.status === 'Approved');
+            try {
+                // Fetch all users from API
+                const res = await fetch('/api/users');
+                const data = await res.json();
                 
-                return `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-semibold">${emp.name || ''}</td>
-                        <td class="px-6 py-4">${emp.email || ''}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded font-semibold ${bal.annual <= 5 ? 'bg-red-100 text-red-800' : bal.annual <= 10 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.annual || 0}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded font-semibold ${bal.sick <= 2 ? 'bg-red-100 text-red-800' : bal.sick <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.sick || 0}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 rounded font-semibold ${bal.personal <= 2 ? 'bg-red-100 text-red-800' : bal.personal <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.personal || 0}</span>
-                        </td>
-                        <td class="px-6 py-4 space-x-2">
-                            <button onclick="openLeaveBalanceModal('${emp.id}')" class="text-blue-600 hover:underline text-sm">Edit</button>
-                            <button onclick="showApprovedRequestsForUser('${emp.email}')" class="text-gray-600 hover:underline text-sm">History (${approvedRequests.length})</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                if (!data.success || !Array.isArray(data.users)) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Failed to load users</td></tr>';
+                    return;
+                }
+                
+                const users = data.users;
+                const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+                
+                // Initialize leave balances for all users with defaults
+                users.forEach(user => {
+                    const key = `leaveBalance_${user.id}`;
+                    const stored = JSON.parse(localStorage.getItem(key) || '{}');
+                    if (!stored.annual) {
+                        localStorage.setItem(key, JSON.stringify({ annual: 21, sick: 7, personal: 0 }));
+                    }
+                });
+                
+                tbody.innerHTML = users.map(user => {
+                    const key = `leaveBalance_${user.id}`;
+                    const bal = JSON.parse(localStorage.getItem(key) || '{"annual":21,"sick":7,"personal":0}');
+                    const approvedRequests = leaveRequests.filter(r => r.userEmail === user.email && r.status === 'HOD Approved');
+                    
+                    return `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 font-semibold">${escapeHtml(user.full_name || '')}</td>
+                            <td class="px-6 py-4">${escapeHtml(user.email || '')}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded font-semibold ${bal.annual <= 5 ? 'bg-red-100 text-red-800' : bal.annual <= 10 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.annual || 21}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded font-semibold ${bal.sick <= 2 ? 'bg-red-100 text-red-800' : bal.sick <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.sick || 7}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-3 py-1 rounded font-semibold ${bal.personal <= 2 ? 'bg-red-100 text-red-800' : bal.personal <= 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">${bal.personal || 0}</span>
+                            </td>
+                            <td class="px-6 py-4 space-x-2">
+                                <button onclick="openLeaveBalanceModal('${user.id}')" class="text-blue-600 hover:underline text-sm">Edit</button>
+                                <button onclick="showApprovedRequestsForUser('${user.email}')" class="text-gray-600 hover:underline text-sm">History (${approvedRequests.length})</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading balances</td></tr>';
+            }
         }
 
-        function openLeaveBalanceModal(empId) {
-            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
-            const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
-            const emp = employees.find(e => e.id === empId);
-            
-            if (!emp) return;
-            
-            const bal = emp.leaveBalances || { annual: 0, sick: 0, personal: 0 };
-            
-            document.getElementById('balanceModalUserName').textContent = emp.name || '';
-            document.getElementById('balanceModalUserEmail').textContent = emp.email || '';
-            document.getElementById('balanceAnnual').value = bal.annual || 0;
-            document.getElementById('balanceSick').value = bal.sick || 0;
-            document.getElementById('balancePersonal').value = bal.personal || 0;
-            
-            // Show deduction history
-            const approvedRequests = leaveRequests.filter(r => r.email === emp.email && r.status === 'Approved');
-            const deductionList = document.getElementById('deductionList');
-            
-            if (approvedRequests.length === 0) {
-                deductionList.innerHTML = '<p class="text-gray-500">No deductions recorded</p>';
-            } else {
-                deductionList.innerHTML = approvedRequests.slice(-5).reverse().map(req => `
-                    <div class="bg-white p-2 rounded border-l-4 border-green-500">
-                        <p class="font-semibold text-sm">${req.type}: -${req.days} days</p>
-                        <p class="text-xs text-gray-600">${new Date(req.approvedAt || req.timestamp).toLocaleDateString()}</p>
-                    </div>
-                `).join('');
+        async function openLeaveBalanceModal(empId) {
+            try {
+                const res = await fetch('/api/users');
+                const data = await res.json();
+                const user = data.users.find(u => u.id === empId || u.id === String(empId));
+                
+                if (!user) return;
+                
+                const key = `leaveBalance_${user.id}`;
+                const bal = JSON.parse(localStorage.getItem(key) || '{"annual":21,"sick":7,"personal":0}');
+                const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+                
+                document.getElementById('balanceModalUserName').textContent = user.full_name || '';
+                document.getElementById('balanceModalUserEmail').textContent = user.email || '';
+                document.getElementById('balanceAnnual').value = bal.annual || 21;
+                document.getElementById('balanceSick').value = bal.sick || 7;
+                document.getElementById('balancePersonal').value = bal.personal || 0;
+                
+                // Show deduction history
+                const approvedRequests = leaveRequests.filter(r => r.userEmail === user.email && r.status === 'HOD Approved');
+                const deductionList = document.getElementById('deductionList');
+                
+                if (approvedRequests.length === 0) {
+                    deductionList.innerHTML = '<p class="text-gray-500">No approvals recorded</p>';
+                } else {
+                    deductionList.innerHTML = approvedRequests.slice(-5).reverse().map(req => `
+                        <div class="bg-white p-2 rounded border-l-4 border-green-500">
+                            <p class="font-semibold text-sm">${req.leaveType}: ${Math.ceil((new Date(req.end) - new Date(req.start)) / (1000 * 60 * 60 * 24)) + 1} days</p>
+                            <p class="text-xs text-gray-600">${new Date(req.start).toLocaleDateString()} to ${new Date(req.end).toLocaleDateString()}</p>
+                        </div>
+                    `).join('');
+                }
+                
+                // Store the userId for later save
+                document.getElementById('leaveBalanceModal').dataset.empId = user.id;
+                document.getElementById('leaveBalanceModal').classList.remove('hidden');
+            } catch (e) {
+                console.error(e);
+                alert('Error loading user balance');
             }
-            
-            // Store the empId for later save
-            document.getElementById('leaveBalanceModal').dataset.empId = empId;
-            document.getElementById('leaveBalanceModal').classList.remove('hidden');
         }
 
         function closeLeaveBalanceModal() {
@@ -834,19 +880,18 @@
         }
 
         function saveLeaveBalance() {
-            const empId = document.getElementById('leaveBalanceModal').dataset.empId;
-            const employees = JSON.parse(localStorage.getItem('employees') || '[]');
-            const emp = employees.find(e => e.id === empId);
+            const userId = document.getElementById('leaveBalanceModal').dataset.empId;
             
-            if (!emp) return;
+            if (!userId) return;
             
-            emp.leaveBalances = {
-                annual: parseInt(document.getElementById('balanceAnnual').value) || 0,
-                sick: parseInt(document.getElementById('balanceSick').value) || 0,
+            const key = `leaveBalance_${userId}`;
+            const balance = {
+                annual: parseInt(document.getElementById('balanceAnnual').value) || 21,
+                sick: parseInt(document.getElementById('balanceSick').value) || 7,
                 personal: parseInt(document.getElementById('balancePersonal').value) || 0
             };
             
-            localStorage.setItem('employees', JSON.stringify(employees));
+            localStorage.setItem(key, JSON.stringify(balance));
             closeLeaveBalanceModal();
             loadLeaveBalances();
             alert('Leave balance updated successfully!');
@@ -1624,10 +1669,23 @@
             }
         }
         
+        // Show/hide department field when role changes
+        document.getElementById('changeRightsRole').addEventListener('change', function() {
+            const deptContainer = document.getElementById('departmentFieldContainer');
+            if (this.value === 'HOD') {
+                deptContainer.style.display = 'block';
+                document.getElementById('changeRightsDept').required = true;
+            } else {
+                deptContainer.style.display = 'none';
+                document.getElementById('changeRightsDept').required = false;
+            }
+        });
+        
         document.getElementById('changeRightsForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const userEmail = document.getElementById('changeRightsUser').value;
             const newRole = document.getElementById('changeRightsRole').value;
+            const department = document.getElementById('changeRightsDept').value;
             const adminEmail = localStorage.getItem('adminEmail') || 'Admin';
             
             if (!userEmail || !newRole) {
@@ -1635,11 +1693,19 @@
                 return;
             }
             
+            if (newRole === 'HOD' && !department) {
+                alert('Please select a department for HOD role');
+                return;
+            }
+            
             // Send to backend to update database
+            const body = { email: userEmail, role: newRole };
+            if (department) body.department = department;
+            
             fetch('/api/users/update-role', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: userEmail, role: newRole })
+                body: JSON.stringify(body)
             }).then(r => {
                 if (!r.ok) throw new Error('Server error: ' + r.status);
                 return r.json();
@@ -1651,13 +1717,15 @@
                         id: 'RC-' + Date.now(),
                         userEmail,
                         newRole,
+                        department: department || null,
                         changedAt: new Date().toISOString(),
                         changedBy: adminEmail
                     });
                     localStorage.setItem('roleChangeHistory', JSON.stringify(roleChanges));
                     
-                    alert(`Role assigned successfully! ${userEmail} is now a ${newRole}`);
+                    alert(`Role assigned successfully! ${userEmail} is now a ${newRole}${department ? ' (' + department + ')' : ''}`);
                     this.reset();
+                    document.getElementById('departmentFieldContainer').style.display = 'none';
                     loadChangeRightsUsers();
                 } else {
                     alert('Error: ' + (data.message || 'Failed to assign role'));

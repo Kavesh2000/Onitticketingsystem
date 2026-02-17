@@ -54,6 +54,11 @@ ONIT MFB
 
 ---
 
+
+### HOD & HR Portals
+- **HOD** users have a dedicated portal that redirects to leave management; they perform first‑level approval for their department before requests escalate to admin.
+- **HR** portal lists core HR modules as placeholders, including employee, payroll, attendance, recruitment, performance, and more.
+
 ## Design Features
 
 ### Color Palette

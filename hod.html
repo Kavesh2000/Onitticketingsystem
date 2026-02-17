@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOD Portal - Maisha Bank</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-600 to-purple-900">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h1 class="text-3xl font-bold text-center mb-2">HOD Portal</h1>
+            <button type="button" onclick="window.location.href='index.html'" class="text-blue-600 hover:text-blue-700 text-sm mb-4">← Back</button>
+            <p class="text-center text-gray-600 mb-6">Head‑Of‑Department Dashboard</p>
+
+            <form id="hodLoginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Email</label>
+                    <input type="email" id="hodUserEmail" required placeholder="you@maishabank.com" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="hodUserPassword" placeholder="Password" required class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" />
+                </div>
+                <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded">Login</button>
+            </form>
+            <p id="hodLoginMessage" class="mt-4 text-center text-red-500"></p>
+        </div>
+    </div>
+
+    <!-- HOD Dashboard -->
+    <div id="portalContent" class="hidden">
+        <!-- Sidebar -->
+        <div class="flex h-screen bg-gray-100">
+            <div class="w-64 bg-gradient-to-b from-purple-700 to-purple-900 text-white shadow-lg">
+                <div class="p-6 border-b border-purple-600">
+                    <h2 class="text-2xl font-bold">HOD Portal</h2>
+                    <p class="text-purple-200 text-sm mt-1">Department Head</p>
+                </div>
+
+                <div class="p-6 border-b border-purple-600">
+                    <p class="text-sm text-purple-200">Logged in as</p>
+                    <p id="hodUserName" class="font-semibold text-lg"></p>
+                    <p id="hodUserDept" class="text-purple-200 text-sm mt-1"></p>
+                </div>
+
+                <nav class="mt-6 space-y-2 px-4">
+                    <button onclick="showSection('dashboard')" class="sidebar-link w-full text-left px-4 py-3 rounded hover:bg-purple-600 transition">
+                        📊 Dashboard
+                    </button>
+                    <button onclick="showSection('employees')" class="sidebar-link w-full text-left px-4 py-3 rounded hover:bg-purple-600 transition">
+                        👥 My Employees
+                    </button>
+                    <button onclick="showSection('requests')" class="sidebar-link w-full text-left px-4 py-3 rounded hover:bg-purple-600 transition">
+                        📋 Leave Requests
+                    </button>
+                </nav>
+
+                <div class="absolute bottom-0 left-0 w-64 p-4 border-t border-purple-600">
+                    <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded transition">
+                        🚪 Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 overflow-auto">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="section p-8">
+                    <h2 class="text-3xl font-bold mb-6">Dashboard</h2>
+                    
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                            <p class="text-gray-600 text-sm">Total Employees</p>
+                            <p class="text-3xl font-bold text-blue-600 mt-2" id="statTotalEmp">0</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+                            <p class="text-gray-600 text-sm">On Leave Today</p>
+                            <p class="text-3xl font-bold text-green-600 mt-2" id="statOnLeave">0</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
+                            <p class="text-gray-600 text-sm">Pending Requests</p>
+                            <p class="text-3xl font-bold text-yellow-600 mt-2" id="statPending">0</p>
+                        </div>
+                        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+                            <p class="text-gray-600 text-sm">Approved This Month</p>
+                            <p class="text-3xl font-bold text-purple-600 mt-2" id="statApproved">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Leave Balances Table -->
+                    <div class="bg-white rounded-lg shadow p-6 mb-6">
+                        <h3 class="text-xl font-semibold mb-4">Employee Leave Balances</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Employee</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">Annual (21)</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">Sick (7)</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">On Leave</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveBalancesTable" class="divide-y">
+                                    <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Employees Section -->
+                <div id="employees" class="section p-8 hidden">
+                    <h2 class="text-3xl font-bold mb-6">My Employees</h2>
+                    <div class="bg-white rounded-lg shadow overflow-hidden">
+                        <div id="employeesList" class="divide-y">
+                            <p class="p-4 text-center text-gray-500">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Leave Requests Section -->
+                <div id="requests" class="section p-8 hidden">
+                    <h2 class="text-3xl font-bold mb-6">Leave Requests</h2>
+                    
+                    <!-- Pending Requests -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-semibold mb-4">Pending Requests</h3>
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <table class="w-full">
+                                <thead class="bg-yellow-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Employee</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Start Date</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">End Date</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">Days</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingRequestsTable" class="divide-y">
+                                    <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No pending requests</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Approved Requests -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Approved Requests</h3>
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <table class="w-full">
+                                <thead class="bg-green-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Employee</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Type</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">Start Date</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold">End Date</th>
+                                        <th class="px-6 py-3 text-center text-sm font-semibold">Days</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="approvedRequestsTable" class="divide-y">
+                                    <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No approved requests</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const app = {
+            currentUser: null,
+            employees: [],
+            leaveRequests: [],
+            leaveBalances: {},
+
+            async init() {
+                this.currentUser = {
+                    id: localStorage.getItem('userId'),
+                    email: localStorage.getItem('userEmail'),
+                    name: localStorage.getItem('userName'),
+                    department: localStorage.getItem('userDept')
+                };
+
+                if (!this.currentUser.email || this.currentUser.email === 'null') {
+                    window.location.href = 'hod.html';
+                    return;
+                }
+
+                document.getElementById('hodUserName').textContent = this.currentUser.name;
+                document.getElementById('hodUserDept').textContent = `${this.currentUser.department} Department`;
+                
+                await this.loadData();
+                this.showDashboard();
+            },
+
+            async loadData() {
+                // Load all users
+                const usersRes = await fetch('/api/users');
+                const usersData = await usersRes.json();
+                
+                if (usersData.success) {
+                    // Filter to only this department, including HOD
+                    this.employees = usersData.users.filter(u => u.department === this.currentUser.department);
+                    console.log(`[HOD] Loaded ${this.employees.length} users for ${this.currentUser.department}`);
+                }
+
+                // Load leave requests from localStorage
+                this.leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+
+                // Initialize leave balances
+                this.employees.forEach(emp => {
+                    const key = `leaveBalance_${emp.id}`;
+                    const stored = JSON.parse(localStorage.getItem(key) || '{}');
+                    this.leaveBalances[emp.id] = {
+                        annual: stored.annual !== undefined ? stored.annual : 21,
+                        sick: stored.sick !== undefined ? stored.sick : 7
+                    };
+                });
+
+                this.updateDashboard();
+            },
+
+            showDashboard() {
+                this.showSection('dashboard');
+            },
+
+            updateDashboard() {
+                // Update stats
+                const deptRequests = this.leaveRequests.filter(r => r.department === this.currentUser.department);
+                const pending = deptRequests.filter(r => r.status === 'Pending');
+                const approved = deptRequests.filter(r => r.status === 'HOD Approved');
+                const onLeaveToday = deptRequests.filter(r => {
+                    const today = new Date().toISOString().split('T')[0];
+                    return r.status === 'HOD Approved' && r.start <= today && r.end >= today;
+                });
+
+                document.getElementById('statTotalEmp').textContent = this.employees.length;
+                document.getElementById('statOnLeave').textContent = onLeaveToday.length;
+                document.getElementById('statPending').textContent = pending.length;
+                document.getElementById('statApproved').textContent = approved.length;
+
+                // Update leave balances table
+                const balancesHtml = this.employees.map(emp => {
+                    const balance = this.leaveBalances[emp.id] || { annual: 21, sick: 7 };
+                    const isOnLeave = deptRequests.some(r => 
+                        r.userEmail === emp.email && r.status === 'HOD Approved' &&
+                        r.start <= new Date().toISOString().split('T')[0] &&
+                        r.end >= new Date().toISOString().split('T')[0]
+                    );
+                    return `
+                        <tr>
+                            <td class="px-6 py-4 font-semibold">${emp.full_name}${emp.email === this.currentUser.email ? ' <span class=\"text-purple-600 font-bold\">(You)</span>' : ''}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">${emp.email}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                    ${balance.annual} days
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
+                                    ${balance.sick} days
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                ${isOnLeave ? '<span class="text-green-600 font-semibold">On Leave ✓</span>' : '<span class="text-gray-500">Working</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('leaveBalancesTable').innerHTML = balancesHtml || 
+                    '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No employees in this department</td></tr>';
+
+                // Update employees list
+                const empHtml = this.employees.map(emp => `
+                    <div class="p-4 hover:bg-gray-50 border-b">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-semibold">${emp.full_name}${emp.email === this.currentUser.email ? ' <span class=\"text-purple-600 font-bold\">(You)</span>' : ''}</p>
+                                <p class="text-sm text-gray-600">${emp.email}</p>
+                                <p class="text-sm text-purple-600 font-medium">${emp.role}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('employeesList').innerHTML = empHtml || 
+                    '<p class="p-4 text-center text-gray-500">No employees found</p>';
+
+                // Update leave requests tables
+                // HOD sees all requests for their department
+                const deptPending = this.leaveRequests.filter(r => r.department === this.currentUser.department && r.status === 'pending');
+                const deptApproved = this.leaveRequests.filter(r => r.department === this.currentUser.department && r.status === 'hod-approved');
+
+                const pendingHtml = deptPending.map(req => {
+                    const days = Math.ceil((new Date(req.end) - new Date(req.start)) / (1000 * 60 * 60 * 24)) + 1;
+                    return `
+                        <tr>
+                            <td class="px-6 py-4 font-semibold">${req.userName || req.userEmail}</td>
+                            <td class="px-6 py-4">${req.leaveType}</td>
+                            <td class="px-6 py-4">${new Date(req.start).toLocaleDateString()}</td>
+                            <td class="px-6 py-4">${new Date(req.end).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 text-center">${days}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="app.approveRequest('${req.id}')" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm mr-2">Approve</button>
+                                <button onclick="app.rejectRequest('${req.id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">Reject</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('pendingRequestsTable').innerHTML = pendingHtml || 
+                    '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No pending requests</td></tr>';
+
+                const approvedHtml = deptApproved.map(req => {
+                    const days = Math.ceil((new Date(req.end) - new Date(req.start)) / (1000 * 60 * 60 * 24)) + 1;
+                    return `
+                        <tr>
+                            <td class="px-6 py-4 font-semibold">${req.userName || req.userEmail}</td>
+                            <td class="px-6 py-4">${req.leaveType}</td>
+                            <td class="px-6 py-4">${new Date(req.start).toLocaleDateString()}</td>
+                            <td class="px-6 py-4">${new Date(req.end).toLocaleDateString()}</td>
+                            <td class="px-6 py-4 text-center">${days}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('approvedRequestsTable').innerHTML = approvedHtml || 
+                    '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No approved requests</td></tr>';
+            },
+
+            approveRequest(requestId) {
+                const req = this.leaveRequests.find(r => r.id === requestId);
+                if (!req) return;
+
+                req.status = 'HOD Approved';
+                localStorage.setItem('leaveRequests', JSON.stringify(this.leaveRequests));
+                alert(`Leave request from ${req.userName} approved!`);
+                this.updateDashboard();
+            },
+
+            rejectRequest(requestId) {
+                const reason = prompt('Enter reason for rejection:');
+                if (!reason) return;
+
+                const req = this.leaveRequests.find(r => r.id === requestId);
+                if (!req) return;
+
+                req.status = 'Rejected';
+                req.rejectReason = reason;
+                localStorage.setItem('leaveRequests', JSON.stringify(this.leaveRequests));
+                alert(`Leave request from ${req.userName} rejected.`);
+                this.updateDashboard();
+            }
+        };
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        document.getElementById('hodLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('hodUserEmail').value;
+            const pwd = document.getElementById('hodUserPassword').value;
+
+            const res = await fetch('/api/auth', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ email, password: pwd }) 
+            });
+            const d = await res.json();
+
+            if (d.success) {
+                const role = (d.user.role || '').toLowerCase();
+                if (role !== 'hod') {
+                    document.getElementById('hodLoginMessage').textContent = 'Access denied: you are not registered as HOD';
+                    return;
+                }
+
+                localStorage.setItem('userId', d.user.id || '');
+                localStorage.setItem('userEmail', email);
+                localStorage.setItem('userName', d.user.full_name || email);
+                localStorage.setItem('userDept', d.user.department || 'No Department');
+                localStorage.setItem('userRole', 'HOD');
+
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('portalContent').classList.remove('hidden');
+                app.init();
+            } else {
+                document.getElementById('hodLoginMessage').textContent = d.message || 'Login failed';
+            }
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'hod.html';
+        }
+    </script>
+</body>
+</html>

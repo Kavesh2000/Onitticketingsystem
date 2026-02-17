@@ -109,27 +109,45 @@
 
         
         
-        <!-- Portal Selection (dropdown) -->
+        <!-- Portal Selection (grid cards) -->
         <div id="portalSelect" class="bg-gray-100 bg-opacity-90 p-8 rounded-lg max-w-3xl mx-auto shadow-lg mb-8">
-            <h2 class="text-2xl font-bold mb-6 text-gray-800">Select Portal</h2>
-            <div class="flex items-center justify-center gap-4">
-                <label for="portalDropdown" class="sr-only">Select Portal</label>
-                <select id="portalDropdown" class="w-72 px-4 py-3 border border-gray-300 rounded bg-white text-gray-800">
-                    <option value="">-- Choose a portal --</option>
-                    <option value="user">👤 User Portal</option>
-                    <option value="finance">💰 Finance Portal</option>
-                    <option value="branch">🏦 Branch Portal</option>
-                    <option value="ict">💻 ICT Portal</option>
-                    <option value="admin">🔐 Admin Portal</option>
-                </select>
-                
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Choose a portal</h2>
+            <div id="portalGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <button data-portal="user" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">🎧</span>
+                    <span class="font-semibold text-gray-800">Customer<br>Service</span>
+                </button>
+                <button data-portal="finance" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">💰</span>
+                    <span class="font-semibold text-gray-800">Finance</span>
+                </button>
+                <button data-portal="branch" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">🏦</span>
+                    <span class="font-semibold text-gray-800">Branch</span>
+                </button>
+                <button data-portal="ict" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">💻</span>
+                    <span class="font-semibold text-gray-800">ICT</span>
+                </button>
+                <button data-portal="hr" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">🧑‍💼</span>
+                    <span class="font-semibold text-gray-800">HR</span>
+                </button>
+                <button data-portal="hod" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">🏛️</span>
+                    <span class="font-semibold text-gray-800">HOD</span>
+                </button>
+                <button data-portal="admin" class="portal-card flex items-center justify-center p-6 bg-white rounded-lg shadow hover:shadow-lg transition">
+                    <span class="text-4xl mr-3">🔐</span>
+                    <span class="font-semibold text-gray-800">Admin</span>
+                </button>
             </div>
         </div>
         
-        <!-- User Login Form -->
+        <!-- Customer Service Login Form (formerly "User") -->
         <div id="userLoginForm" class="bg-gray-100 bg-opacity-90 p-8 rounded-lg max-w-md mx-auto shadow-lg hidden">
             <button id="backFromUserBtn" class="text-blue-600 hover:text-blue-700 text-sm mb-4">← Back</button>
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">User Login</h2>
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Customer Service Login</h2>
             <form id="userLoginFormEl">
                 <div class="mb-4">
                     <label for="userEmail" class="block text-sm font-medium text-gray-700">Email</label>
@@ -172,8 +190,22 @@
             if (existing) {
                 try {
                     const parsed = JSON.parse(existing);
-                    // If parsed data already contains `type` field, assume new schema and keep it
+                    // If parsed data already contains `type` field, assume new schema.
                     if (Array.isArray(parsed) && parsed.some(e => Object.prototype.hasOwnProperty.call(e, 'type'))) {
+                        // but still enforce updated leave balances and remove personal leave
+                        let changed = false;
+                        parsed.forEach(emp => {
+                            if (!emp.leaveBalances) emp.leaveBalances = {};
+                            if (emp.leaveBalances.annual !== 21) { emp.leaveBalances.annual = 21; changed = true; }
+                            if (emp.leaveBalances.sick !== 7) { emp.leaveBalances.sick = 7; changed = true; }
+                            if (Object.prototype.hasOwnProperty.call(emp.leaveBalances, 'personal')) {
+                                delete emp.leaveBalances.personal;
+                                changed = true;
+                            }
+                        });
+                        if (changed) {
+                            localStorage.setItem('employees', JSON.stringify(parsed));
+                        }
                         return;
                     }
                     // Otherwise fall through to reinitialize with new schema
@@ -183,34 +215,33 @@
             }
 
             let employees = [
-                // Regular Users (numeric IDs)
-                { id: '1', name: 'John Smith', type: 'user', email: 'john.smith@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
-                { id: '2', name: 'Jane Doe', type: 'user', email: 'jane.doe@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
-                { id: '3', name: 'Michael Johnson', type: 'user', email: 'michael.johnson@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
-                { id: '4', name: 'Sarah Williams', type: 'user', email: 'sarah.williams@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
-                { id: '5', name: 'David Brown', type: 'user', email: 'david.brown@onit.com', leaveBalances: { annual: 20, sick: 10, personal: 5 } },
-                // Admins
-                { id: '6', name: 'Admin One', type: 'admin', email: 'admin1@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } },
-                { id: '7', name: 'Admin Two', type: 'admin', email: 'admin2@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } },
-                { id: '8', name: 'System Admin', type: 'admin', email: 'sysadmin@onit.com', leaveBalances: { annual: 25, sick: 15, personal: 10 } }
+                // real users only
+                { id: '1', name: 'Stevaniah Kavela', type: 'user', email: 'stevaniah.kavela@maishabank.com', department: 'ICT', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '2', name: 'Mercy Mukhwana', type: 'user', email: 'mercy.mukhwana@maishabank.com', department: 'ICT', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '3', name: 'Eric Mokaya', type: 'user', email: 'eric.mokaya@maishabank.com', department: 'ICT', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '4', name: 'Caroline Ngugi', type: 'user', email: 'caroline.ngugi@maishabank.com', department: 'Branch', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '5', name: 'Lilian Kimani', type: 'user', email: 'lilian.kimani@maishabank.com', department: 'Branch', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '6', name: 'Maureen Kerubo', type: 'user', email: 'maureen.kerubo@maishabank.com', department: 'Branch', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '7', name: 'Alice Muthoni', type: 'user', email: 'alice.muthoni@maishabank.com', department: 'Branch', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '8', name: 'Michael Mureithi', type: 'user', email: 'michael.mureithi@maishabank.com', department: 'Branch', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '9', name: 'Patrick Ndegwa', type: 'user', email: 'patrick.ndegwa@maishabank.com', department: 'Finance', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '10', name: 'Margaret Njeri', type: 'user', email: 'margaret.njeri@maishabank.com', department: 'Finance', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '11', name: 'Elizabeth Mungai', type: 'user', email: 'elizabeth.mungai@maishabank.com', department: 'Finance', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '12', name: 'Ebby Gesare', type: 'user', email: 'ebby.gesare@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '13', name: 'Vivian Orisa', type: 'user', email: 'vivian.orisa@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '14', name: 'Juliana Jeptoo', type: 'user', email: 'juliana.jeptoo@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '15', name: 'Faith Bonareri', type: 'user', email: 'faith.bonareri@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '16', name: 'Patience Mutunga', type: 'user', email: 'patience.mutunga@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '17', name: 'Eva Mukami', type: 'user', email: 'eva.mukami@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '18', name: 'Peter Kariuki', type: 'user', email: 'peter.kariuki@maishabank.com', department: 'Customer Service', leaveBalances: { annual: 21, sick: 7 } },
+                { id: '19', name: 'Admin', type: 'admin', email: 'automation@maishabank.com', department: 'Admin', leaveBalances: { annual: 21, sick: 7 } }
             ];
-            // Assign random departments to users that don't have one (helpful for testing assignment)
-            const departments = ['IT','Finance','HR','Support','Operations'];
-            employees = employees.map(e => {
-                if (!e.department || String(e.department).trim() === '') {
-                    // Prefer admin users to have an Admin or Operations department
-                    if ((e.type||'').toLowerCase() === 'admin') {
-                        e.department = 'Operations';
-                    } else {
-                        e.department = departments[Math.floor(Math.random()*departments.length)];
-                    }
-                }
-                return e;
-            });
+            // no random departments required – we have fixed real users
+            // (leave the employees array as-is)
             localStorage.setItem('employees', JSON.stringify(employees));
             // Initialize numeric ID counters for various entities
             const nextIds = JSON.parse(localStorage.getItem('nextIds') || '{}');
-            nextIds.employees = Math.max(nextIds.employees || 1, 9);
+            nextIds.employees = Math.max(nextIds.employees || 1, 19);
             nextIds.tickets = nextIds.tickets || 1;
             nextIds.leaveRequests = nextIds.leaveRequests || 1;
             nextIds.claims = nextIds.claims || 1;
@@ -231,7 +262,7 @@
             
             // Setup portal selection
             setupPortalSelection();
-            // Populate Customer Service emails for User portal login
+            // Populate Customer Service emails for customer service portal login
             populateCustomerServiceUsers();
         };
 
@@ -261,31 +292,25 @@
         }
 
         function setupPortalSelection() {
-            const portalDropdown = document.getElementById('portalDropdown');
+            const portalGrid = document.getElementById('portalGrid');
             const backFromUserBtn = document.getElementById('backFromUserBtn');
             const backFromAdminBtn = document.getElementById('backFromAdminBtn');
 
-            function openSelectedPortal() {
-                const val = (portalDropdown.value || '').trim();
-                if (!val) return;
+            portalGrid.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-portal]');
+                if (!btn) return;
+                const val = btn.getAttribute('data-portal');
                 if (val === 'user') return showUserLogin();
                 if (val === 'admin') return showAdminLogin();
-                // other portals navigate directly
                 window.location.href = `${val}.html`;
-            }
-
-            portalDropdown.addEventListener('change', () => {
-                // auto-open on select for faster flow
-                openSelectedPortal();
             });
+
             backFromUserBtn.addEventListener('click', () => showPortalSelect());
             backFromAdminBtn.addEventListener('click', () => showPortalSelect());
 
             // Setup login forms
             document.getElementById('userLoginFormEl').addEventListener('submit', handleUserLogin);
             document.getElementById('adminLoginFormEl').addEventListener('submit', handleAdminLogin);
-
-            // No dropdowns: users login with email, admin uses fixed username
         }
 
         function showPortalSelect() {

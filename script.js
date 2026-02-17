@@ -257,7 +257,8 @@ const RBAC = {
     'Risk & Compliance': { ticketing: 'read', finance: 'none', audit: 'owner', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', 'leave-management': 'user' },
     'Internal Audit': { ticketing: 'read', finance: 'read', audit: 'full', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', 'leave-management': 'user' },
     'Customer Service': { ticketing: 'user', finance: 'none', audit: 'none', reporting: 'limited', config: 'none', inventory: 'none', purchases: 'none', 'leave-management': 'user' },
-    'Management': { ticketing: 'read', finance: 'read', audit: 'read', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', 'leave-management': 'owner' },
+    'HR': { ticketing: 'user', finance: 'none', audit: 'none', reporting: 'limited', config: 'none', inventory: 'none', purchases: 'none', hr: 'owner', 'leave-management': 'user' },
+    'Management': { ticketing: 'read', finance: 'read', audit: 'read', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', 'leave-management': 'owner', hr: 'read', hod: 'owner' },
     'Security': { ticketing: 'read', finance: 'none', audit: 'read', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', iam: 'owner', pam: 'owner', 'security-incident': 'owner', vulnerability: 'owner', 'policy-compliance': 'owner', 'security-dashboard': 'full', 'leave-management': 'user' },
     'Data Analysis': { ticketing: 'read', finance: 'read', audit: 'read', reporting: 'full', config: 'none', inventory: 'none', purchases: 'none', 'data-integration': 'owner', 'data-warehouse': 'owner', 'analytics-bi': 'owner', 'data-governance': 'owner', 'leave-management': 'user' },
     'Customer': { ticketing: 'user' },
@@ -276,6 +277,7 @@ function getDeptKey(dept) {
     if (d.includes('audit')) return 'Internal Audit';
     if (d.includes('branch') || d.includes('support') || d.includes('customer')) return 'Customer Service';
     if (d.includes('management')) return 'Management';
+    if (d.includes('hr')) return 'HR';
     if (d.includes('security')) return 'Security';
     if (d.includes('data') && d.includes('analysis')) return 'Data Analysis';
     if (d === 'admin') return 'admin';
@@ -1096,30 +1098,28 @@ function initializeEmployees() {
 // Default employees fallback (previous hardcoded list)
 function getDefaultEmployees() {
     return [
-        { id: 'EMP001', name: 'Stevaniah Kavela', department: 'IT', email: 'stevaniah.kavela@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP002', name: 'Mercy Mukhwana', department: 'IT', email: 'mercy.mukhwana@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP003', name: 'Eric Mokaya', department: 'IT / ICT', email: 'eric.mokaya@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP004', name: 'Caroline Ngugi', department: 'IT / ICT', email: 'caroline.ngugi@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP005', name: 'Lilian Kimani', department: 'Finance', email: 'lilian.kimani@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP006', name: 'Maureen Kerubo', department: 'Finance', email: 'maureen.kerubo@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP007', name: 'Alice Muthoni', department: 'Operations', email: 'alice.muthoni@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP008', name: 'Michael Mureithi', department: 'Operations', email: 'michael.mureithi@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP009', name: 'Patrick Ndegwa', department: 'Risk & Compliance', email: 'patrick.ndegwa@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP010', name: 'Margaret Njeri', department: 'Risk & Compliance', email: 'margaret.njeri@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP011', name: 'Elizabeth Mungai', department: 'Internal Audit', email: 'elizabeth.mungai@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP012', name: 'Ebby Gesare', department: 'Internal Audit', email: 'ebby.gesare@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP013', name: 'Vivian Orisa', department: 'Customer Service', email: 'vivian.orisa@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP014', name: 'Juliana Jeptoo', department: 'Customer Service', email: 'juliana.jeptoo@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP015', name: 'Faith Bonareri', department: 'Management', email: 'faith.bonareri@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP016', name: 'Patience Mutunga', department: 'Management', email: 'patience.mutunga@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP017', name: 'Eva Mukami', department: 'Security', email: 'eva.mukami@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP018', name: 'Peter Kariuki', department: 'Security', email: 'peter.kariuki@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP019', name: 'Ken Okwero', department: 'Data Analysis', email: 'ken.okwero@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP020', name: 'Bonface Kioko', department: 'Data Analysis', email: 'bonface.kioko@maishabank.com', leaveBalances: { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 } },
-        { id: 'EMP021', name: 'Clive Odame', department: 'admin', email: 'clive.odame@maishabank.com', leaveBalances: { annual: 30, sick: 15, personal: 10, maternity: 0, paternity: 0 } }
+        { id: 'EMP001', name: 'Alice Martin', department: 'Customer Service', email: 'alice.martin@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP002', name: 'Bob Lee', department: 'Customer Service', email: 'bob.lee@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP003', name: 'Cathy Nguyen', department: 'IT', email: 'cathy.nguyen@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP004', name: 'David Kim', department: 'IT', email: 'david.kim@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP005', name: 'Eva Patel', department: 'Finance', email: 'eva.patel@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP006', name: 'Frank O\'Connor', department: 'Finance', email: 'frank.oconnor@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP007', name: 'Grace Liu', department: 'HR', email: 'grace.liu@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP008', name: 'Henry Adams', department: 'HR', email: 'henry.adams@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP009', name: 'Ian Wright', department: 'Support', email: 'ian.wright@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP010', name: 'Jasmine Torres', department: 'Support', email: 'jasmine.torres@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP011', name: 'Kyle Brown', department: 'Operations', email: 'kyle.brown@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP012', name: 'Lena Svensson', department: 'Operations', email: 'lena.svensson@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP013', name: 'Mohamed Ali', department: 'Customer Service', email: 'mohamed.ali@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP014', name: 'Nina Schmidt', department: 'IT', email: 'nina.schmidt@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP015', name: 'Oscar Pérez', department: 'Finance', email: 'oscar.perez@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP016', name: 'Priya Singh', department: 'HR', email: 'priya.singh@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP017', name: 'Quentin Blake', department: 'Support', email: 'quentin.blake@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP018', name: 'Ryan Johnson', department: 'Operations', email: 'ryan.johnson@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP019', name: 'Admin One', department: 'Management', email: 'admin1@maishabank.com', leaveBalances: { annual: 21, sick: 7 } },
+        { id: 'EMP020', name: 'Admin Two', department: 'Management', email: 'admin2@maishabank.com', leaveBalances: { annual: 21, sick: 7 } }
     ];
-}
-}
+}}
 
 // Initialize employees on page load
 initializeEmployees();

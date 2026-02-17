@@ -1,6 +1,8 @@
 # Maisha Bank Email Service Setup Guide
 
 ## Overview
+> ⚠️ **Temporary Notice:** Automated email delivery is currently disabled in the web application per recent configuration. All email methods have been stubbed out, so no messages will be sent until the feature is re-enabled. This is intended to prevent users from receiving notifications during early testing or when email setup is incomplete.
+>
 Your Maisha Bank system now includes comprehensive email functionality that sends automated notifications for leave requests, approvals, rejections, and other system communications.
 
 ## Features

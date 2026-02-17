@@ -6,8 +6,10 @@ A simplified, two-portal system for managing tickets and leave requests.
 ## Features
 
 ### Portals
-- **User Portal**: Regular employees can submit tickets and manage leave requests
+- **Customer Service Portal** (formerly "User"): Regular employees can submit tickets and manage leave requests
 - **Admin Portal**: Administrators can manage all tickets and leave requests
+- **HR Portal**: Human resources staff can access HR management features (placeholder)
+- **HOD Portal**: Heads of department get a dedicated dashboard (leave management only). HODs approve departmental leave requests first – after their approval the request is routed to Admin for final sign‑off.
 
 ### Core Modules
 1. **Ticketing System**: Submit and track support tickets
@@ -17,7 +19,7 @@ A simplified, two-portal system for managing tickets and leave requests.
 
 ### Login
 1. Open `index.html` in your browser
-2. Choose between "User Portal" or "Admin Portal"
+2. Choose between "Customer Service Portal", "HR Portal", "HOD Portal" or "Admin Portal"
 3. Select a user/admin from the dropdown
 4. Password: `1234` (for all users)
 
@@ -48,7 +50,7 @@ A simplified, two-portal system for managing tickets and leave requests.
 
 ## Features
 
-### User Portal
+### Customer Service Portal
 - View personal tickets
 - Submit new tickets
 - View leave balance

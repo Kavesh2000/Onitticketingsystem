@@ -311,10 +311,11 @@ function seed_users() {
     ];
 
     const existingUsers = loadUsers();
-    const existingUsernames = new Set(existingUsers.map(u => u.username));
+    const existingEmails = new Set(existingUsers.map(u => u.email.toLowerCase()));
     
     let addedCount = 0;
-    const defaultPassword = "Password123!";
+    // default password for new records (temporary). change as needed.
+    const defaultPassword = "1234";
     const hashedPassword = hashPassword(defaultPassword);
 
     for (const userData of users) {
@@ -323,8 +324,8 @@ function seed_users() {
         const emailLocal = parts.join('.');
         userData.email = `${emailLocal}@maishabank.com`;
 
-        // Check if user already exists
-        if (!existingUsernames.has(userData.username)) {
+        // Check if user already exists (by email)
+        if (!existingEmails.has(userData.email.toLowerCase())) {
             const newId = getNextUserId();
             const userObj = {
                 id: newId,
@@ -453,6 +454,16 @@ app.put('/api/tickets/:id', (req, res) => {
 });
 
 // ===== USER MANAGEMENT ENDPOINTS =====
+// Get all users
+app.get('/api/users', (req, res) => {
+    try {
+        const users = loadUsers();
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('[ERROR] Getting users:', error.message);
+        res.status(500).json({ success: false, message: 'Failed to get users' });
+    }
+});
 
 // Seed users
 app.post('/api/seed-users', (req, res) => {
@@ -469,58 +480,8 @@ app.post('/api/seed-users', (req, res) => {
         });
     } catch (error) {
         console.error('[ERROR] Seeding users:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to seed users',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Failed to seed users' });
     }
-});
-
-// Get all users
-app.get('/api/users', (req, res) => {
-    try {
-        console.log('[GET] Fetching users');
-        const users = loadUsers();
-        // Don't send passwords to frontend
-        const safeUsers = users.map(u => ({
-            id: u.id,
-            full_name: u.full_name,
-            username: u.username,
-            email: u.email,
-            role: u.role,
-            department: u.department,
-            active: u.active,
-            created_at: u.created_at
-        }));
-        res.json({
-            success: true,
-            users: safeUsers
-        });
-    } catch (error) {
-        console.error('[ERROR] Getting users:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to get users'
-        });
-    }
-});
-
-// Get audit log entries (admin)
-app.get('/api/audit', (req, res) => {
-    try {
-        const audits = loadAudit();
-        res.json({ success: true, audits });
-    } catch (error) {
-        console.error('[ERROR] Getting audit logs:', error.message);
-        res.status(500).json({ success: false, message: 'Failed to get audit logs' });
-    }
-});
-
-// Get available audit activities
-app.get('/api/audit/activities', (req, res) => {
-    const activities = ['login', 'failed-login', 'seed-users', 'create-user', 'update-user', 'delete-user', 'update-role', 'reset-passwords', 'approval-approved', 'approval-rejected', 'workflow-created', 'email-sent'];
-    res.json({ success: true, activities });
 });
 
 // Approve leave request (sends email to user)
@@ -738,28 +699,8 @@ app.post('/api/users', (req, res) => {
             email,
             role,
             department,
-            password: password ? hashPassword(password) : (existingUser?.password || hashPassword("Password123!")),
-            active: true,
-            created_at: existingUser?.created_at || new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            password: password || undefined
         };
-
-        if (userId) {
-            // Update existing user
-            const index = users.findIndex(u => Number(u.id) === userId);
-            if (index === -1) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'User not found'
-                });
-            }
-            users[index] = userObj;
-            console.log('[UPDATE] Updated user:', username);
-        } else {
-            // Create new user
-            users.push(userObj);
-            console.log('[CREATE] Created user:', username, 'id=', userObj.id);
-        }
 
         saveUsers(users);
         // synchronize asset register with updated users
@@ -832,8 +773,8 @@ app.delete('/api/users/:id', (req, res) => {
 // Update user role
 app.put('/api/users/update-role', (req, res) => {
     try {
-        const { email, role } = req.body;
-        console.log('[PUT] Updating role for:', email, 'to', role);
+        const { email, role, department } = req.body;
+        console.log('[PUT] Updating role for:', email, 'to', role, department ? 'in department ' + department : '');
         
         if (!email || !role) {
             return res.status(400).json({
@@ -853,6 +794,9 @@ app.put('/api/users/update-role', (req, res) => {
         }
         
         user.role = role;
+        if (department) {
+            user.department = department;
+        }
         saveUsers(users);
 
         // Send email notification about role change
@@ -885,6 +829,7 @@ app.put('/api/users/update-role', (req, res) => {
                         <div class="role-box">
                             <div class="role-label">Your New Role:</div>
                             <div class="role-value">${role}</div>
+                            ${department ? `<div class="role-label" style="margin-top: 10px;">Department:</div><div class="role-value">${department}</div>` : ''}
                         </div>
                         
                         <p><strong>Important:</strong> This change is effective immediately. Your access permissions and system capabilities have been updated accordingly.</p>
@@ -904,16 +849,17 @@ app.put('/api/users/update-role', (req, res) => {
         logEmail(email, subject, body, req);
 
         // audit role update
-        addAuditEntry('update-role', req, { email: user.email, role: user.role });
+        addAuditEntry('update-role', req, { email: user.email, role: user.role, department: user.department });
 
-        console.log('[SUCCESS] Role updated for:', email, 'to', role);
+        console.log('[SUCCESS] Role updated for:', email, 'to', role, department ? 'in ' + department : '');
         res.json({
             success: true,
             message: 'Role updated successfully',
             user: {
                 email: user.email,
                 full_name: user.full_name,
-                role: user.role
+                role: user.role,
+                department: user.department
             }
         });
     } catch (error) {
