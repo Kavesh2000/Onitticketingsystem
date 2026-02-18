@@ -150,6 +150,14 @@
                     </div>
                 </div>
 
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Activity</h3>
+                    <div id="recentActivityContainer" class="space-y-3">
+                        <p class="text-gray-500 text-center py-8">No recent activity</p>
+                    </div>
+                </div>
+
             </div>
 
             <div id="tickets" class="content-section p-8">
@@ -430,11 +438,19 @@
                 }
             }
 
-            document.getElementById('userNameDisplay').textContent = localStorage.getItem('userName') || '-';
-            document.getElementById('userTypeDisplay').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : 'User';
-            document.getElementById('infoName').textContent = localStorage.getItem('userName')||'-';
-            document.getElementById('infoEmail').textContent = localStorage.getItem('userEmail')||'-';
-            document.getElementById('infoType').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : 'User';
+            // Load and display user info from localStorage
+            const userName = localStorage.getItem('userName') || '-';
+            const userEmail = localStorage.getItem('userEmail') || '-';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const userType = isAdmin ? 'Admin' : 'User';
+            
+            document.getElementById('userNameDisplay').textContent = userName;
+            document.getElementById('userTypeDisplay').textContent = userType;
+            document.getElementById('infoName').textContent = userName;
+            document.getElementById('infoEmail').textContent = userEmail;
+            document.getElementById('infoType').textContent = userType;
+            
+            console.log('[SYSTEM-CLEAN] User loaded:', { userName, userEmail, userType });
             
             // Initialize workflow for expense claims
             const claimWorkflowConfig = {
@@ -512,26 +528,34 @@
             
             // User tickets
             const userTickets = isAdmin ? tickets : tickets.filter(t=> t.email === userEmail || t.assignedTo === userId || (t.department && t.department.toLowerCase() === (userDept||'').toLowerCase()));
-            document.getElementById('totalTickets').textContent = userTickets.length; 
-            document.getElementById('openTickets').textContent = userTickets.filter(t=>t.status==='Open').length;
+            const totalTicketsEl = document.getElementById('totalTickets');
+            const openTicketsEl = document.getElementById('openTickets');
+            if (totalTicketsEl) totalTicketsEl.textContent = userTickets.length;
+            if (openTicketsEl) openTicketsEl.textContent = userTickets.filter(t=>t.status==='Open').length;
             
             // User claims
             const claims = JSON.parse(localStorage.getItem('claims')||'[]');
             const userClaims = isAdmin ? claims : claims.filter(c => c.email === userEmail);
-            document.getElementById('totalClaims').textContent = userClaims.length;
-            document.getElementById('pendingClaims').textContent = userClaims.filter(c => c.status === 'Pending').length;
+            const totalClaimsEl = document.getElementById('totalClaims');
+            const pendingClaimsEl = document.getElementById('pendingClaims');
+            if (totalClaimsEl) totalClaimsEl.textContent = userClaims.length;
+            if (pendingClaimsEl) pendingClaimsEl.textContent = userClaims.filter(c => c.status === 'Pending').length;
             
             // User leave
             const leaveRequests = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
             const userLeave = isAdmin ? leaveRequests : leaveRequests.filter(r => r.email === userEmail);
-            document.getElementById('totalLeave').textContent = userLeave.length;
-            document.getElementById('pendingLeave').textContent = userLeave.filter(r => r.status === 'Pending').length;
+            const totalLeaveEl = document.getElementById('totalLeave');
+            const pendingLeaveEl = document.getElementById('pendingLeave');
+            if (totalLeaveEl) totalLeaveEl.textContent = userLeave.length;
+            if (pendingLeaveEl) pendingLeaveEl.textContent = userLeave.filter(r => r.status === 'Pending').length;
             
             // User notifications
             const notifications = JSON.parse(localStorage.getItem('userNotifications')||'[]');
             const userNotifications = notifications.filter(n => n.userEmail === userEmail);
-            document.getElementById('totalNotifications').textContent = userNotifications.length;
-            document.getElementById('unreadNotifications').textContent = userNotifications.filter(n => !n.read).length;
+            const totalNotificationsEl = document.getElementById('totalNotifications');
+            const unreadNotificationsEl = document.getElementById('unreadNotifications');
+            if (totalNotificationsEl) totalNotificationsEl.textContent = userNotifications.length;
+            if (unreadNotificationsEl) unreadNotificationsEl.textContent = userNotifications.filter(n => !n.read).length;
             
             loadDashboardActivity();
         }
@@ -606,6 +630,11 @@
             activities = activities.slice(0, 10);
             
             const container = document.getElementById('recentActivityContainer');
+            if (!container) {
+                console.warn('[DASHBOARD] recentActivityContainer not found in DOM');
+                return;
+            }
+            
             if (activities.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 text-center py-8">No recent activity</p>';
                 return;

@@ -486,7 +486,13 @@
         }
 
         function logout() {
-            localStorage.clear();
+            // Clear only auth data, preserve business data (requests, tickets, etc)
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userDept');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userId');
             window.location.href = 'index.html';
         }
     </script>

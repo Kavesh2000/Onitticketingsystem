@@ -143,6 +143,122 @@ async function autoAssignAgentAsync(department) {
     }
 }
 
+// --- Background sync for local tickets ---
+// Read localStorage tickets array
+function getLocalStorageTickets() {
+    const raw = localStorage.getItem('tickets');
+    return raw ? JSON.parse(raw) : [];
+}
+
+// Mark a local ticket as synced
+function markLocalTicketSynced(id) {
+    const tickets = getLocalStorageTickets();
+    const idx = tickets.findIndex(t => t.id === id);
+    if (idx !== -1) {
+        tickets[idx].synced = true;
+        localStorage.setItem('tickets', JSON.stringify(tickets));
+    }
+}
+
+// Try to sync local unsynced tickets to server. Will attempt POST then PUT as fallback.
+async function syncLocalTickets() {
+    const tickets = getLocalStorageTickets();
+    if (!tickets || tickets.length === 0) return;
+    for (const t of tickets) {
+        if (t.synced) continue;
+        try {
+            const res = await fetch('/api/tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data && data.success) {
+                markLocalTicketSynced(t.id);
+                continue;
+            }
+            // If POST failed due to duplicate, try PUT to update
+            const putRes = await fetch('/api/tickets/' + encodeURIComponent(t.id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(t) });
+            const putData = await putRes.json().catch(() => null);
+            if (putRes.ok && putData && putData.success) {
+                markLocalTicketSynced(t.id);
+            }
+        } catch (err) {
+            // network error — leave unsynced, will retry later
+            console.warn('Sync error for ticket', t.id, err && err.message);
+        }
+    }
+}
+
+// --- Claims & Disbursements sync ---
+function getLocalClaims() {
+    const raw = localStorage.getItem('expenseClaims');
+    return raw ? JSON.parse(raw) : [];
+}
+
+function markLocalClaimSynced(id) {
+    const arr = getLocalClaims();
+    const idx = arr.findIndex(c => c.id === id);
+    if (idx !== -1) { arr[idx].synced = true; localStorage.setItem('expenseClaims', JSON.stringify(arr)); }
+}
+
+async function syncLocalClaims() {
+    const claims = getLocalClaims();
+    for (const c of claims) {
+        if (c.synced) continue;
+        try {
+            const res = await fetch('/api/claims', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data && data.success) {
+                markLocalClaimSynced(c.id);
+            }
+        } catch (err) {
+            console.warn('Claim sync error', c.id, err && err.message);
+        }
+    }
+}
+
+function getLocalDisbursements() {
+    const raw = localStorage.getItem('claimDisbursements');
+    return raw ? JSON.parse(raw) : [];
+}
+
+function markLocalDisbursementSynced(id) {
+    const arr = getLocalDisbursements();
+    const idx = arr.findIndex(d => d.id === id);
+    if (idx !== -1) { arr[idx].synced = true; localStorage.setItem('claimDisbursements', JSON.stringify(arr)); }
+}
+
+async function syncLocalDisbursements() {
+    const disbs = getLocalDisbursements();
+    for (const d of disbs) {
+        if (d.synced) continue;
+        try {
+            const res = await fetch('/api/disbursements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data && data.success) {
+                markLocalDisbursementSynced(d.id);
+            }
+        } catch (err) {
+            console.warn('Disbursement sync error', d.id, err && err.message);
+        }
+    }
+}
+
+// Start periodic sync: on load, focus, and interval
+function startBackgroundSync(intervalMs = 30000) {
+    // attempt once immediately
+    syncLocalTickets();
+    syncLocalClaims();
+    syncLocalDisbursements();
+    // periodic
+    setInterval(syncLocalTickets, intervalMs);
+    setInterval(syncLocalClaims, intervalMs);
+    setInterval(syncLocalDisbursements, intervalMs);
+    // also when window gains focus or regains network
+    window.addEventListener('focus', syncLocalTickets);
+    window.addEventListener('online', syncLocalTickets);
+}
+
+// start background sync when app loads
+try { startBackgroundSync(30000); } catch (e) {}
+
 // Legacy synchronous function (for backward compatibility)
 function autoAssignAgent(department) {
     const agents = AGENT_ASSIGNMENTS[department] || AGENT_ASSIGNMENTS['Customer Service'];
@@ -420,19 +536,48 @@ function saveTicket(ticket) {
     if (!ticket.sla_due) ticket.sla_due = calculateSLADue(ticket.priority, ticket.timestamp);
     if (!ticket.status) ticket.status = 'Open';
     
-    if (db) {
-        db.run("INSERT INTO tickets VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
-            ticket.id, ticket.name, ticket.email, ticket.fromDept, ticket.ticketType, ticket.toDept, 
-            ticket.issueType, ticket.description, ticket.status, ticket.priority, ticket.escalated, 
-            ticket.attachment, ticket.timestamp, ticket.category || 'Request', ticket.sla_due || null, ticket.assigned_to || null
-        ]);
-        saveDbToStorage();
-    } else {
-        // Fallback
-        const tickets = getTickets();
-        tickets.push(ticket);
-        localStorage.setItem('tickets', JSON.stringify(tickets));
+    // Helper to save locally (localStorage + SQL.js if present)
+    function saveLocalRecord(tkt, synced) {
+        // write to localStorage for offline queue and UI
+        const local = localStorage.getItem('tickets');
+        const arr = local ? JSON.parse(local) : [];
+        const idx = arr.findIndex(x => x.id === tkt.id);
+        const entry = { ...tkt, synced: !!synced };
+        if (idx !== -1) arr[idx] = entry; else arr.push(entry);
+        localStorage.setItem('tickets', JSON.stringify(arr));
+
+        // also write to in-memory SQL.js DB if available (best-effort)
+        if (db) {
+            try {
+                db.run(`INSERT OR REPLACE INTO tickets (id, timestamp, priority, to_dept, assigned_to, sla_due, status, escalated, name, email, from_dept, ticket_type, issue_type, description, attachment, category) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)` , [
+                    tkt.id, tkt.timestamp, tkt.priority, tkt.toDept, tkt.assigned_to || null, tkt.sla_due || null, tkt.status, tkt.escalated, tkt.name, tkt.email, tkt.fromDept, tkt.ticketType, tkt.issueType, tkt.description, tkt.attachment, tkt.category || 'Request'
+                ]);
+                saveDbToStorage();
+            } catch (e) {
+                // ignore SQL.js write errors
+                console.warn('Local SQL write failed:', e && e.message);
+            }
+        }
     }
+
+    // Attempt to POST to server; if it fails, keep local copy and mark unsynced
+    fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ticket)
+    }).then(resp => resp.json())
+    .then(data => {
+        if (data && data.success) {
+            saveLocalRecord(ticket, true);
+        } else {
+            console.warn('Server rejected ticket, saving locally as unsynced:', data && data.message);
+            saveLocalRecord(ticket, false);
+        }
+    }).catch(err => {
+        console.warn('Server unreachable, saved ticket locally (unsynced):', err && err.message);
+        saveLocalRecord(ticket, false);
+    });
+
     logAudit('Create Ticket', ticket.id, ticket.fromDept);
 }
 
@@ -1194,19 +1339,9 @@ function displayUsers(users) {
 // Show new user form
 function showNewUserForm() {
     const form = document.getElementById('newUserForm');
-    if (form) {
-        form.classList.remove('hidden');
-        document.getElementById('userEditId').value = '';
-        document.getElementById('userForm').reset();
-    }
-}
-
-// Hide new user form
-function hideNewUserForm() {
-    const form = document.getElementById('newUserForm');
-    if (form) {
-        form.classList.add('hidden');
-    }
+    if (!form) return;
+    form.classList.remove('hidden');
+    try { form.scrollIntoView({ behavior: 'smooth' }); } catch (e) { /* ignore */ }
 }
 
 // Edit user

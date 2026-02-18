@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const db = require('./database');
 
 const app = express();
 
@@ -14,8 +15,8 @@ const transporter = nodemailer.createTransport({
     port: 587,
     secure: false,
     auth: {
-        user: 'automation@maishabank.com',
-        pass: 'test.test700'
+        // user: 'automation@maishabank.com',
+        // pass: 'test.test700'
     }
 });
 const PORT = 3003;
@@ -28,56 +29,63 @@ app.use(express.static('.'));
 
 console.log('[INIT] Server initializing on port', PORT);
 
-// Ticket storage
-const TICKETS_FILE = path.join(__dirname, 'tickets.json');
-const USERS_FILE = path.join(__dirname, 'users.json');
-const ASSETS_FILE = path.join(__dirname, 'asset-register.json');
-
 // Hash password utility
 function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Load users from file
-function loadUsers() {
+// Load users from PostgreSQL
+async function loadUsers() {
     try {
-        if (fs.existsSync(USERS_FILE)) {
-            const data = fs.readFileSync(USERS_FILE, 'utf8');
-            return JSON.parse(data);
-        }
+        const result = await db.query('SELECT * FROM users ORDER BY id');
+        return result.rows;
     } catch (error) {
         console.error('[ERROR] Loading users:', error.message);
     }
     return [];
 }
 
-// Save users to file
-function saveUsers(users) {
+// Save users to PostgreSQL
+async function saveUsers(users) {
     try {
-        fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+        for (const user of users) {
+            await db.query(
+                `INSERT INTO users (id, full_name, username, email, role, department, password, created_at, active) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                 ON CONFLICT (id) DO UPDATE SET 
+                 full_name=$2, username=$3, email=$4, role=$5, department=$6, password=$7, active=$9`,
+                [user.id, user.full_name, user.username, user.email, user.role, user.department, user.password, user.created_at, user.active]
+            );
+        }
         console.log('[SUCCESS] Saved', users.length, 'users');
     } catch (error) {
         console.error('[ERROR] Saving users:', error.message);
     }
 }
 
-// Load assets from file
-function loadAssets() {
+// Load assets from PostgreSQL
+async function loadAssets() {
     try {
-        if (fs.existsSync(ASSETS_FILE)) {
-            const data = fs.readFileSync(ASSETS_FILE, 'utf8');
-            return JSON.parse(data);
-        }
+        const result = await db.query('SELECT * FROM asset_register ORDER BY owner_id');
+        return result.rows;
     } catch (error) {
         console.error('[ERROR] Loading assets:', error.message);
     }
     return [];
 }
 
-// Save assets to file
-function saveAssets(assets) {
+// Save assets to PostgreSQL
+async function saveAssets(assets) {
     try {
-        fs.writeFileSync(ASSETS_FILE, JSON.stringify(assets, null, 2));
+        for (const asset of assets) {
+            await db.query(
+                `INSERT INTO asset_register (owner_id, owner_name, owner_email, assets) 
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (owner_id) DO UPDATE SET 
+                 owner_name=$2, owner_email=$3, assets=$4`,
+                [asset.owner_id, asset.owner_name, asset.owner_email, JSON.stringify(asset.assets || [])]
+            );
+        }
         console.log('[SUCCESS] Saved', assets.length, 'asset owners');
     } catch (error) {
         console.error('[ERROR] Saving assets:', error.message);
@@ -85,68 +93,29 @@ function saveAssets(assets) {
 }
 
 // Ensure asset register entries exist for each user
-function syncAssetsWithUsers(users) {
+// Load tickets from PostgreSQL
+async function loadTickets() {
     try {
-        const assets = loadAssets();
-        const ownersMap = new Map(assets.map(a => [String(a.owner_id), a]));
-        let changed = false;
-
-        for (const u of users) {
-            const key = String(u.id);
-            if (!ownersMap.has(key)) {
-                const newOwner = {
-                    owner_id: u.id,
-                    owner_name: u.full_name,
-                    owner_email: u.email,
-                    assets: []
-                };
-                assets.push(newOwner);
-                ownersMap.set(key, newOwner);
-                changed = true;
-                console.log('[ASSET] Created asset owner for user:', u.username, 'id=', u.id);
-            }
-        }
-
-        if (changed) saveAssets(assets);
-        return assets;
-    } catch (e) {
-        console.error('[ERROR] syncAssetsWithUsers', e.message);
-        return [];
-    }
-}
-
-// Get next numeric user ID (start from 123)
-function getNextUserId() {
-    try {
-        const users = loadUsers();
-        let max = 0; // start point so first id will be 1
-        for (const u of users) {
-            const idNum = Number(u.id);
-            if (!Number.isNaN(idNum) && idNum > max) max = idNum;
-        }
-        return max + 1;
-    } catch (e) {
-        return 1;
-    }
-}
-
-// Load tickets from file
-function loadTickets() {
-    try {
-        if (fs.existsSync(TICKETS_FILE)) {
-            const data = fs.readFileSync(TICKETS_FILE, 'utf8');
-            return JSON.parse(data);
-        }
+        const result = await db.query('SELECT * FROM tickets ORDER BY timestamp DESC');
+        return result.rows;
     } catch (error) {
         console.error('[ERROR] Loading tickets:', error.message);
     }
     return [];
 }
 
-// Save tickets to file
-function saveTickets(tickets) {
+// Save tickets to PostgreSQL
+async function saveTickets(tickets) {
     try {
-        fs.writeFileSync(TICKETS_FILE, JSON.stringify(tickets, null, 2));
+        for (const ticket of tickets) {
+            await db.query(
+                `INSERT INTO tickets (id, timestamp, priority, to_dept, assigned_to, sla_due, status, escalated, name, email, from_dept, ticket_type, issue_type, description, attachment, category) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                 ON CONFLICT (id) DO UPDATE SET 
+                 priority=$3, to_dept=$4, assigned_to=$5, sla_due=$6, status=$7, escalated=$8, name=$9, email=$10, from_dept=$11, ticket_type=$12, issue_type=$13, description=$14, attachment=$15, category=$16`,
+                [ticket.id, ticket.timestamp, ticket.priority, ticket.toDept, ticket.assigned_to, ticket.sla_due, ticket.status, ticket.escalated, ticket.name, ticket.email, ticket.fromDept, ticket.ticketType, ticket.issueType, ticket.description, ticket.attachment, ticket.category]
+            );
+        }
         console.log('[SUCCESS] Saved', tickets.length, 'tickets');
     } catch (error) {
         console.error('[ERROR] Saving tickets:', error.message);
@@ -154,32 +123,8 @@ function saveTickets(tickets) {
 }
 
 // Audit log storage
-const AUDIT_FILE = path.join(__dirname, 'audit.json');
-
-function loadAudit() {
-    try {
-        if (fs.existsSync(AUDIT_FILE)) {
-            const data = fs.readFileSync(AUDIT_FILE, 'utf8');
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error('[ERROR] Loading audit:', error.message);
-    }
-    return [];
-}
-
-function saveAudit(auditEntries) {
-    try {
-        fs.writeFileSync(AUDIT_FILE, JSON.stringify(auditEntries, null, 2));
-        console.log('[AUDIT] Saved', auditEntries.length, 'entries');
-    } catch (error) {
-        console.error('[ERROR] Saving audit:', error.message);
-    }
-}
-
 function addAuditEntry(action, req, details) {
     try {
-        const audits = loadAudit();
         const id = (crypto.randomUUID && crypto.randomUUID()) || crypto.createHash('sha1').update(String(Date.now()) + action).digest('hex');
         const entry = {
             id,
@@ -190,8 +135,13 @@ function addAuditEntry(action, req, details) {
             ip: (req && (req.headers?.['x-forwarded-for'] || req.ip || (req.connection && req.connection.remoteAddress))) || 'unknown',
             details: details || {}
         };
-        audits.push(entry);
-        saveAudit(audits);
+        
+        db.query(
+            `INSERT INTO audit_logs (timestamp, action, method, path, ip, details) 
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [entry.timestamp, entry.action, entry.method, entry.path, entry.ip, JSON.stringify(entry.details)]
+        ).catch(e => console.error('[DB ERROR] Audit:', e.message));
+        
         console.log('[AUDIT] Recorded', action, entry.id);
     } catch (e) {
         console.error('[ERROR] addAuditEntry', e.message);
@@ -202,30 +152,8 @@ function addAuditEntry(action, req, details) {
 const EMAIL_LOG_FILE = path.join(__dirname, 'email-log.json');
 const ADMIN_EMAIL = 'automation@maishabank.com';
 
-function loadEmailLog() {
-    try {
-        if (fs.existsSync(EMAIL_LOG_FILE)) {
-            const data = fs.readFileSync(EMAIL_LOG_FILE, 'utf8');
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error('[ERROR] Loading email log:', error.message);
-    }
-    return [];
-}
-
-function saveEmailLog(emails) {
-    try {
-        fs.writeFileSync(EMAIL_LOG_FILE, JSON.stringify(emails, null, 2));
-        console.log('[EMAIL] Logged', emails.length, 'emails');
-    } catch (error) {
-        console.error('[ERROR] Saving email log:', error.message);
-    }
-}
-
 function logEmail(to, subject, body, req) {
     try {
-        const emails = loadEmailLog();
         const id = crypto.randomUUID ? crypto.randomUUID() : crypto.createHash('sha1').update(String(Date.now()) + to).digest('hex');
         
         // Send email via Outlook SMTP
@@ -236,6 +164,7 @@ function logEmail(to, subject, body, req) {
             html: body
         };
         
+        /* EMAIL SENDING DISABLED
         transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
                 console.error('[EMAIL ERROR] Failed to send to', to, ':', error.message);
@@ -250,25 +179,29 @@ function logEmail(to, subject, body, req) {
                     status: 'failed',
                     error: error.message
                 };
-                emails.push(failedEntry);
-                saveEmailLog(emails);
+                db.query(
+                    `INSERT INTO email_logs (id, timestamp, "from", "to", subject, body, status) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [id, new Date().toISOString(), ADMIN_EMAIL, to, subject, body.substring(0, 500), 'failed']
+                ).catch(e => console.error('[DB ERROR]', e.message));
             } else {
                 console.log('[EMAIL] Sent successfully to', to, 'Subject:', subject);
                 // Log successful email
-                const entry = {
-                    id,
-                    timestamp: new Date().toISOString(),
-                    from: ADMIN_EMAIL,
-                    to,
-                    subject,
-                    body,
-                    status: 'sent',
-                    response: info.response
-                };
-                emails.push(entry);
-                saveEmailLog(emails);
+                db.query(
+                    `INSERT INTO email_logs (id, timestamp, "from", "to", subject, body, status) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                    [id, new Date().toISOString(), ADMIN_EMAIL, to, subject, body.substring(0, 500), 'sent']
+                ).catch(e => console.error('[DB ERROR]', e.message));
             }
         });
+        */
+        
+        // Log email attempt to database
+        db.query(
+            `INSERT INTO email_logs (id, timestamp, "from", "to", subject, body, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [id, new Date().toISOString(), ADMIN_EMAIL, to, subject, body.substring(0, 500), 'pending']
+        ).catch(e => console.error('[DB ERROR] Logging email:', e.message));
         
         // Also audit the email send
         addAuditEntry('email-sent', req, { to, subject, from: ADMIN_EMAIL });
@@ -278,7 +211,7 @@ function logEmail(to, subject, body, req) {
 }
 
 // Seed users function
-function seed_users() {
+async function seed_users() {
     const users = [
         // ICT Department
         {"full_name": "Stevaniah Kavela", "username": "stevaniah", "email": "stevaniah@maishabank.com", "role": "ICT", "department": "ICT"},
@@ -310,7 +243,7 @@ function seed_users() {
         {"full_name": "Admin", "username": "admin", "email": "admin@maishabank.com", "role": "Admin", "department": "Admin"}
     ];
 
-    const existingUsers = loadUsers();
+    const existingUsers = await loadUsers();
     const existingEmails = new Set(existingUsers.map(u => u.email.toLowerCase()));
     
     let addedCount = 0;
@@ -326,32 +259,40 @@ function seed_users() {
 
         // Check if user already exists (by email)
         if (!existingEmails.has(userData.email.toLowerCase())) {
-            const newId = getNextUserId();
-            const userObj = {
-                id: newId,
-                ...userData,
-                password: hashedPassword,
-                created_at: new Date().toISOString(),
-                active: true
-            };
-            existingUsers.push(userObj);
-            addedCount++;
-            console.log('[SEED] Added user:', userData.username, 'id=', newId);
+            try {
+                // Get next ID from database
+                const result = await db.query('SELECT MAX(id) as max_id FROM users');
+                const nextId = (result.rows[0]?.max_id || 0) + 1;
+                
+                const userObj = {
+                    id: nextId,
+                    ...userData,
+                    password: hashedPassword,
+                    created_at: new Date().toISOString(),
+                    active: true
+                };
+                
+                await db.query(
+                    `INSERT INTO users (full_name, username, email, role, department, password, created_at, active) 
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    [userObj.full_name, userObj.username, userObj.email, userObj.role, userObj.department, userObj.password, userObj.created_at, userObj.active]
+                );
+                
+                addedCount++;
+                console.log('[SEED] Added user:', userData.username, 'id=', nextId);
+            } catch (e) {
+                console.error('[SEED ERROR] Adding user', userData.username, ':', e.message);
+            }
         } else {
             console.log('[SKIP] User already exists:', userData.username);
         }
     }
 
-    if (addedCount > 0) {
-        saveUsers(existingUsers);
-        // ensure asset register entries exist for seeded users
-        syncAssetsWithUsers(existingUsers);
-        console.log('[SEED] Successfully added', addedCount, 'new users');
-    } else {
-        console.log('[SEED] No new users to add');
-    }
+    const totalResult = await db.query('SELECT COUNT(*) as count FROM users');
+    const totalCount = totalResult.rows[0]?.count || 0;
 
-    return { success: true, added: addedCount, total: existingUsers.length };
+    console.log('[SEED] Successfully added', addedCount, 'new users');
+    return { success: true, added: addedCount, total: totalCount };
 }
 
 // Health check endpoint
@@ -365,15 +306,53 @@ app.get('/api/health', (req, res) => {
 });
 
 // Get all tickets
-app.get('/api/tickets', (req, res) => {
+app.get('/api/tickets', async (req, res) => {
     try {
-        console.log('[GET] Fetching tickets');
-        const tickets = loadTickets();
-        console.log('[GET] Returning', tickets.length, 'tickets');
-        res.json({
-            success: true,
-            tickets: tickets
-        });
+        console.log('[GET] Fetching tickets with filters', req.query);
+
+        // Support query params: startDate, endDate (ISO), email, name, fromDept, toDept, status
+        const { startDate, endDate, email, name, fromDept, toDept, status } = req.query;
+        const whereClauses = [];
+        const params = [];
+
+        if (startDate) {
+            params.push(startDate);
+            whereClauses.push(`timestamp >= $${params.length}`);
+        }
+        if (endDate) {
+            params.push(endDate);
+            whereClauses.push(`timestamp <= $${params.length}`);
+        }
+        if (email) {
+            params.push(email);
+            whereClauses.push(`email = $${params.length}`);
+        }
+        if (name) {
+            params.push(`%${name}%`);
+            whereClauses.push(`name ILIKE $${params.length}`);
+        }
+        if (fromDept) {
+            params.push(fromDept);
+            whereClauses.push(`from_dept = $${params.length}`);
+        }
+        if (toDept) {
+            params.push(toDept);
+            whereClauses.push(`to_dept = $${params.length}`);
+        }
+        if (status) {
+            params.push(status);
+            whereClauses.push(`status = $${params.length}`);
+        }
+
+        let sql = 'SELECT * FROM tickets';
+        if (whereClauses.length > 0) {
+            sql += ' WHERE ' + whereClauses.join(' AND ');
+        }
+        sql += ' ORDER BY timestamp DESC';
+
+        const result = await db.query(sql, params);
+        console.log('[GET] Returning', result.rows.length, 'tickets');
+        res.json({ success: true, tickets: result.rows });
     } catch (error) {
         console.error('[ERROR] Getting tickets:', error.message);
         res.status(500).json({
@@ -383,25 +362,123 @@ app.get('/api/tickets', (req, res) => {
     }
 });
 
+// Claims endpoints
+app.get('/api/claims', async (req, res) => {
+    try {
+        const { email, claimant, status } = req.query;
+        const where = [];
+        const params = [];
+        if (email) { params.push(email); where.push(`email = $${params.length}`); }
+        if (claimant) { params.push(`%${claimant}%`); where.push(`claimant ILIKE $${params.length}`); }
+        if (status) { params.push(status); where.push(`status = $${params.length}`); }
+
+        let sql = 'SELECT * FROM expense_claims';
+        if (where.length) sql += ' WHERE ' + where.join(' AND ');
+        sql += ' ORDER BY created_at DESC';
+
+        const result = await db.query(sql, params);
+        res.json({ success: true, claims: result.rows });
+    } catch (error) {
+        console.error('[ERROR] GET /api/claims', error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch claims' });
+    }
+});
+
+app.post('/api/claims', async (req, res) => {
+    try {
+        const c = req.body;
+        const id = c.id || (`CLM-${Date.now().toString(36)}`);
+        await db.query(
+            `INSERT INTO expense_claims (id, claimant, email, type, amount, description, status, workflow_id, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO UPDATE SET claimant=EXCLUDED.claimant, email=EXCLUDED.email, type=EXCLUDED.type, amount=EXCLUDED.amount, description=EXCLUDED.description, status=EXCLUDED.status, workflow_id=EXCLUDED.workflow_id, metadata=EXCLUDED.metadata`,
+            [id, c.claimant || c.claimantName || null, c.email || null, c.type || null, c.amount || null, c.description || null, c.status || 'pending', c.workflow_id || c.workflowId || null, c.metadata || {}]
+        );
+        res.status(201).json({ success: true, id });
+    } catch (error) {
+        console.error('[ERROR] POST /api/claims', error.message);
+        res.status(500).json({ success: false, message: 'Failed to create claim' });
+    }
+});
+
+// Disbursements endpoints
+app.get('/api/disbursements', async (req, res) => {
+    try {
+        const result = await db.query('SELECT * FROM claim_disbursements ORDER BY completed_date DESC');
+        res.json({ success: true, disbursements: result.rows });
+    } catch (error) {
+        console.error('[ERROR] GET /api/disbursements', error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch disbursements' });
+    }
+});
+
+app.post('/api/disbursements', async (req, res) => {
+    try {
+        const d = req.body;
+        const id = d.id || (`DISB-${Date.now().toString(36)}`);
+        await db.query(
+            `INSERT INTO claim_disbursements (id, claim_id, amount, teller, branch, status, completed_date, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (id) DO NOTHING`,
+            [id, d.claim_id, d.amount || null, d.teller || null, d.branch || null, d.status || 'pending', d.completed_date || null, d.metadata || {}]
+        );
+        // If disbursement is completed, update claim status
+        if (d.status === 'completed' || d.status === 'disbursed') {
+            await db.query('UPDATE expense_claims SET status=$2 WHERE id=$1', [d.claim_id, 'disbursed']);
+        }
+        res.status(201).json({ success: true, id });
+    } catch (error) {
+        console.error('[ERROR] POST /api/disbursements', error.message);
+        res.status(500).json({ success: false, message: 'Failed to create disbursement' });
+    }
+});
+
+// Leave balances endpoints
+app.get('/api/leave-balances', async (req, res) => {
+    try {
+        const result = await db.query('SELECT lb.user_id, lb.balance, lb.last_updated, u.full_name, u.email FROM leave_balances lb JOIN users u ON u.id = lb.user_id ORDER BY u.full_name');
+        res.json({ success: true, balances: result.rows });
+    } catch (error) {
+        console.error('[ERROR] GET /api/leave-balances', error.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch leave balances' });
+    }
+});
+
+// Recompute leave balances from approved leave requests and stored balances
+app.post('/api/leave-balances/recompute', async (req, res) => {
+    try {
+        console.log('[POST] Recomputing leave balances on demand');
+        const result = await db.recomputeLeaveBalances();
+        addAuditEntry('recompute-leave-balances', req, { updated: result.updated });
+        res.json({ success: true, message: 'Recomputed leave balances', updated: result.updated });
+    } catch (error) {
+        console.error('[ERROR] POST /api/leave-balances/recompute', error.message);
+        res.status(500).json({ success: false, message: 'Failed to recompute leave balances' });
+    }
+});
+
+app.put('/api/leave-balances/:userId', async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+        const { balance } = req.body;
+        await db.query(`INSERT INTO leave_balances (user_id, balance, last_updated) VALUES ($1,$2,NOW()) ON CONFLICT (user_id) DO UPDATE SET balance = $2, last_updated = NOW()`, [userId, balance]);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[ERROR] PUT /api/leave-balances', error.message);
+        res.status(500).json({ success: false, message: 'Failed to set leave balance' });
+    }
+});
+
 // Create ticket
-app.post('/api/tickets', (req, res) => {
+app.post('/api/tickets', async (req, res) => {
     try {
         console.log('[POST] Creating new ticket');
         const ticketData = req.body;
         console.log('[DATA] Received ticket:', ticketData.id);
         
-        // Load existing tickets
-        const tickets = loadTickets();
-        console.log('[DB] Loaded', tickets.length, 'existing tickets');
+        // Add ticket to database
+        await db.query(
+            `INSERT INTO tickets (id, timestamp, priority, to_dept, assigned_to, sla_due, status, escalated, name, email, from_dept, ticket_type, issue_type, description, attachment, category) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+            [ticketData.id, ticketData.timestamp, ticketData.priority, ticketData.toDept, ticketData.assigned_to, ticketData.sla_due, ticketData.status, ticketData.escalated, ticketData.name, ticketData.email, ticketData.fromDept, ticketData.ticketType, ticketData.issueType, ticketData.description, ticketData.attachment, ticketData.category]
+        );
         
-        // Add new ticket
-        tickets.push(ticketData);
-        console.log('[ADD] Added ticket, new count:', tickets.length);
-        
-        // Save to file
-        saveTickets(tickets);
-        
-        // Return success
         console.log('[SUCCESS] Ticket created:', ticketData.id);
         res.status(201).json({
             success: true,
@@ -419,29 +496,33 @@ app.post('/api/tickets', (req, res) => {
 });
 
 // Update ticket
-app.put('/api/tickets/:id', (req, res) => {
+app.put('/api/tickets/:id', async (req, res) => {
     try {
         const ticketId = req.params.id;
         const updates = req.body;
         console.log('[PUT] Updating ticket:', ticketId);
         
-        const tickets = loadTickets();
-        const index = tickets.findIndex(t => t.id === ticketId);
+        const result = await db.query('SELECT * FROM tickets WHERE id = $1', [ticketId]);
         
-        if (index === -1) {
+        if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'Ticket not found'
             });
         }
         
-        tickets[index] = { ...tickets[index], ...updates };
-        saveTickets(tickets);
+        const ticket = result.rows[0];
+        const updated = { ...ticket, ...updates };
+        
+        await db.query(
+            `UPDATE tickets SET priority=$2, to_dept=$3, assigned_to=$4, sla_due=$5, status=$6, escalated=$7, name=$8, email=$9, from_dept=$10, ticket_type=$11, issue_type=$12, description=$13, attachment=$14, category=$15 WHERE id=$1`,
+            [ticketId, updated.priority, updated.to_dept || updated.toDept, updated.assigned_to, updated.sla_due, updated.status, updated.escalated, updated.name, updated.email, updated.from_dept || updated.fromDept, updated.ticket_type || updated.ticketType, updated.issue_type || updated.issueType, updated.description, updated.attachment, updated.category]
+        );
         
         console.log('[SUCCESS] Ticket updated:', ticketId);
         res.json({
             success: true,
-            ticket: tickets[index],
+            ticket: updated,
             message: 'Ticket updated successfully'
         });
     } catch (error) {
@@ -455,9 +536,9 @@ app.put('/api/tickets/:id', (req, res) => {
 
 // ===== USER MANAGEMENT ENDPOINTS =====
 // Get all users
-app.get('/api/users', (req, res) => {
+app.get('/api/users', async (req, res) => {
     try {
-        const users = loadUsers();
+        const users = await loadUsers();
         res.json({ success: true, users });
     } catch (error) {
         console.error('[ERROR] Getting users:', error.message);
@@ -466,10 +547,10 @@ app.get('/api/users', (req, res) => {
 });
 
 // Seed users
-app.post('/api/seed-users', (req, res) => {
+app.post('/api/seed-users', async (req, res) => {
     try {
         console.log('[SEED] Starting user seeding');
-        const result = seed_users();
+        const result = await seed_users();
         // audit seed action
         addAuditEntry('seed-users', req, { added: result.added, total: result.total });
 
@@ -656,10 +737,10 @@ app.post('/api/leave/reject', (req, res) => {
 });
 
 // Get email log
-app.get('/api/emails', (req, res) => {
+app.get('/api/emails', async (req, res) => {
     try {
-        const emails = loadEmailLog();
-        res.json({ success: true, emails });
+        const result = await db.query('SELECT * FROM email_logs ORDER BY timestamp DESC LIMIT 100');
+        res.json({ success: true, emails: result.rows });
     } catch (error) {
         console.error('[ERROR] Getting email logs:', error.message);
         res.status(500).json({ success: false, message: 'Failed to get email logs' });
@@ -667,12 +748,12 @@ app.get('/api/emails', (req, res) => {
 });
 
 // Create/update user
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
     try {
         const { id, full_name, username, email, role, department, password } = req.body;
         console.log('[POST] Creating/updating user:', username);
         
-        const users = loadUsers();
+        const users = await loadUsers();
         const userId = id ? Number(id) : undefined;
         
         // Check for duplicate username (if new user)
@@ -693,18 +774,28 @@ app.post('/api/users', (req, res) => {
 
         const existingUser = users.find(u => Number(u.id) === userId);
         const userObj = {
-            id: userId || getNextUserId(),
+            id: userId || (Math.max(...users.map(u => Number(u.id) || 0)) + 1),
             full_name,
             username,
             email,
             role,
             department,
-            password: password || undefined
+            password: password ? hashPassword(password) : (existingUser?.password)
         };
 
-        saveUsers(users);
-        // synchronize asset register with updated users
-        syncAssetsWithUsers(users);
+        if (existingUser) {
+            await db.query(
+                `UPDATE users SET full_name=$2, username=$3, email=$4, role=$5, department=$6 WHERE id=$1`,
+                [userObj.id, userObj.full_name, userObj.username, userObj.email, userObj.role, userObj.department]
+            );
+        } else {
+            await db.query(
+                `INSERT INTO users (full_name, username, email, role, department, password, created_at, active) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [userObj.full_name, userObj.username, userObj.email, userObj.role, userObj.department, userObj.password, new Date().toISOString(), true]
+            );
+        }
+        
         // audit create/update user
         addAuditEntry(userId ? 'update-user' : 'create-user', req, {
             id: userObj.id,
@@ -735,24 +826,23 @@ app.post('/api/users', (req, res) => {
 });
 
 // Delete user
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
     try {
         const userId = req.params.id;
         console.log('[DELETE] Deleting user:', userId);
         
-        const users = loadUsers();
-        const idNum = Number(userId);
-        const index = users.findIndex(u => Number(u.id) === idNum);
+        const result = await db.query('SELECT * FROM users WHERE id = $1', [userId]);
         
-        if (index === -1) {
+        if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
-        const deletedUser = users.splice(index, 1)[0];
-        saveUsers(users);
+        const deletedUser = result.rows[0];
+        await db.query('DELETE FROM users WHERE id = $1', [userId]);
+        
         // audit delete user
         addAuditEntry('delete-user', req, { id: deletedUser.id, username: deletedUser.username, email: deletedUser.email });
 
@@ -771,7 +861,7 @@ app.delete('/api/users/:id', (req, res) => {
 });
 
 // Update user role
-app.put('/api/users/update-role', (req, res) => {
+app.put('/api/users/update-role', async (req, res) => {
     try {
         const { email, role, department } = req.body;
         console.log('[PUT] Updating role for:', email, 'to', role, department ? 'in department ' + department : '');
@@ -783,8 +873,8 @@ app.put('/api/users/update-role', (req, res) => {
             });
         }
         
-        const users = loadUsers();
-        const user = users.find(u => u.email === email);
+        const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+        const user = result.rows[0];
         
         if (!user) {
             return res.status(404).json({
@@ -793,11 +883,10 @@ app.put('/api/users/update-role', (req, res) => {
             });
         }
         
-        user.role = role;
-        if (department) {
-            user.department = department;
-        }
-        saveUsers(users);
+        await db.query(
+            'UPDATE users SET role = $2, department = $3 WHERE email = $1',
+            [email, role, department || user.department]
+        );
 
         // Send email notification about role change
         const subject = `Your Role Has Been Updated`;
@@ -872,13 +961,14 @@ app.put('/api/users/update-role', (req, res) => {
 });
 
 // Authenticate user (email + password)
-app.post('/api/auth', (req, res) => {
+app.post('/api/auth', async (req, res) => {
     try {
         const { email, password } = req.body || {};
         if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
 
-        const users = loadUsers();
-        const user = users.find(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+        const result = await db.query('SELECT * FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+        const user = result.rows[0];
+        
         if (!user) {
             // audit failed login
             addAuditEntry('failed-login', req, { email, reason: 'User not found' });
@@ -913,7 +1003,7 @@ app.post('/api/auth', (req, res) => {
 });
 
 // Reset passwords for all users (admin endpoint)
-app.post('/api/reset-passwords', (req, res) => {
+app.post('/api/reset-passwords', async (req, res) => {
     try {
         const { password } = req.body || {};
         if (!password || String(password).trim().length === 0) {
@@ -921,24 +1011,16 @@ app.post('/api/reset-passwords', (req, res) => {
         }
 
         console.log('[ADMIN] Resetting passwords for all users');
-        const users = loadUsers();
         const hashed = hashPassword(String(password));
-
-        const updated = users.map(u => ({
-            ...u,
-            password: hashed,
-            updated_at: new Date().toISOString()
-        }));
-
-        saveUsers(updated);
-        // Keep asset register in sync
-        syncAssetsWithUsers(updated);
+        
+        const result = await db.query('UPDATE users SET password=$1, updated_at=NOW() WHERE active=true RETURNING id', [hashed]);
+        const updated = result.rows.length;
 
         // audit reset passwords action
-        addAuditEntry('reset-passwords', req, { updated: updated.length });
+        addAuditEntry('reset-passwords', req, { updated: updated });
 
-        console.log('[ADMIN] Passwords reset for', updated.length, 'users');
-        return res.json({ success: true, updated: updated.length, message: 'Passwords updated' });
+        console.log('[ADMIN] Passwords reset for', updated, 'users');
+        return res.json({ success: true, updated: updated, message: 'Passwords updated' });
     } catch (error) {
         console.error('[ERROR] Resetting passwords:', error.message);
         return res.status(500).json({ success: false, message: 'Failed to reset passwords' });
@@ -958,8 +1040,37 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
     console.log('[LISTEN] Server running on port', PORT);
+    
+    // Initialize database
+    try {
+        console.log('[DB] Testing connection...');
+        const connected = await db.testConnection();
+        
+        if (connected) {
+            console.log('[DB] Connection successful');
+            
+            // Initialize schema
+            await db.initializeSchema();
+            
+            // Optional: Run migration from JSON files on first run
+            const userCount = await db.query('SELECT COUNT(*) as count FROM users');
+            if (userCount.rows[0].count === 0) {
+                console.log('[MIGRATION] No users found, attempting migration from JSON files...');
+                try {
+                    await db.migrateFromJSON();
+                } catch (migrationError) {
+                    console.warn('[MIGRATION] Migration failed or not needed:', migrationError.message);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('[DB] Failed to initialize database:', error.message);
+        console.error('[DB] Make sure PostgreSQL is running and the connection string is correct');
+        console.error('[DB] Set DATABASE_URL environment variable or update .env file');
+    }
+    
     console.log('[READY] Ready to accept connections');
 });
 

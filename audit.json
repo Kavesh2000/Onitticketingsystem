@@ -2383,5 +2383,965 @@
       "username": "stevaniah.kavela",
       "role": "HOD"
     }
+  },
+  {
+    "id": "2911af44-846f-4d43-810a-0e19d722335d",
+    "timestamp": "2026-02-18T06:08:35.634Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "automation@maishabank.com",
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  {
+    "id": "b02a61d0-5cfc-4e0f-a708-5aeeb2f7d88d",
+    "timestamp": "2026-02-18T06:10:21.716Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "faith.bonareri@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "2f5c6203-c47d-48bc-b374-3de1a1a91350",
+    "timestamp": "2026-02-18T06:10:21.769Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "role": "HOD",
+      "department": "Customer Service"
+    }
+  },
+  {
+    "id": "f23fb5ff-c948-4646-9638-61c6eb81d221",
+    "timestamp": "2026-02-18T06:10:35.588Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "4aa8638a-7b61-4e7b-a732-a24ebe6ac858",
+    "timestamp": "2026-02-18T06:11:18.325Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "e24061e9-458d-4635-a9d6-5feaf725b3f1",
+    "timestamp": "2026-02-18T06:12:38.906Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "3a31c1ce-1b66-4a36-ae5e-92b0ad07c040",
+    "timestamp": "2026-02-18T06:12:49.671Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "automation@maishabank.com",
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  {
+    "id": "b928581d-0ee6-40a2-a972-59d1c29ace7d",
+    "timestamp": "2026-02-18T06:13:03.656Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "stevaniah.kavela@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "b8266810-e5c9-4764-9121-6a6e37d95dde",
+    "timestamp": "2026-02-18T06:13:03.715Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "role": "HOD",
+      "department": "ICT"
+    }
+  },
+  {
+    "id": "e0bb5fe1-aa71-4bc6-baf7-bc8ebc65ad0b",
+    "timestamp": "2026-02-18T06:15:26.551Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "cd035297-7684-45a9-aeb4-08a0258701ff",
+    "timestamp": "2026-02-18T06:15:52.825Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "b73d7006-4f54-4c3c-b322-d0c7712b340d",
+    "timestamp": "2026-02-18T06:17:04.189Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "cad0738b-2d2b-45bc-af73-f3599fd7efd5",
+    "timestamp": "2026-02-18T06:22:09.573Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "34635477-83c3-418f-9ecf-23925e180ce8",
+    "timestamp": "2026-02-18T06:23:20.119Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "patrick.ndegwa@maishabank.com",
+      "username": "patrick.ndegwa",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "885049b3-e71b-4194-a04b-f9bdc505b12e",
+    "timestamp": "2026-02-18T06:23:47.369Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "margaret.njeri@maishabank.com",
+      "username": "margaret.njeri",
+      "role": "Finance Officer"
+    }
+  },
+  {
+    "id": "1199edc2-2fc4-486f-bf2d-1a505f6caad7",
+    "timestamp": "2026-02-18T06:24:04.346Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "elizabeth.mungai@maishabank.com",
+      "username": "elizabeth.mungai",
+      "role": "Finance Officer"
+    }
+  },
+  {
+    "id": "8598bddb-7cd6-44aa-b20c-30e46d5deab6",
+    "timestamp": "2026-02-18T06:24:27.281Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "9d567976-3146-4ed1-bfcb-0db237b10750",
+    "timestamp": "2026-02-18T06:25:46.870Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "automation@maishabank.com",
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  {
+    "id": "8836d4bf-53cd-4086-b0b4-b62edeb20999",
+    "timestamp": "2026-02-18T06:26:03.697Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "margaret.njeri@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "bbbee41f-14e1-489a-a053-0cbf5f7d023c",
+    "timestamp": "2026-02-18T06:26:03.761Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "margaret.njeri@maishabank.com",
+      "role": "Head of Finance",
+      "department": "Finance"
+    }
+  },
+  {
+    "id": "9b45acbe-6969-4427-8175-2a7203b9170c",
+    "timestamp": "2026-02-18T06:26:20.155Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "maureen.kerubo@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "e0aecfd8-0eb1-40c5-8853-15e9b42480b5",
+    "timestamp": "2026-02-18T06:26:20.226Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "maureen.kerubo@maishabank.com",
+      "role": "Teller",
+      "department": "Branch"
+    }
+  },
+  {
+    "id": "a34afcad-b44d-4d2f-861e-f530c971054b",
+    "timestamp": "2026-02-18T06:27:32.073Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "margaret.njeri@maishabank.com",
+      "username": "margaret.njeri",
+      "role": "Head of Finance"
+    }
+  },
+  {
+    "id": "45026fd2-6726-457c-9b48-b6f74a1f4a0e",
+    "timestamp": "2026-02-18T06:28:16.438Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "automation@maishabank.com",
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  {
+    "id": "71e3d6ba-6363-4553-ad76-d531224f96b0",
+    "timestamp": "2026-02-18T06:28:29.479Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "patrick.ndegwa@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "73e61827-7f8f-4a38-9000-40744bde98ed",
+    "timestamp": "2026-02-18T06:28:29.578Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "patrick.ndegwa@maishabank.com",
+      "role": "Finance Officer",
+      "department": "Finance"
+    }
+  },
+  {
+    "id": "aa2450cb-b369-4d23-9732-fb240e14615f",
+    "timestamp": "2026-02-18T06:28:47.344Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "72c661cc-cf19-4fa7-8c63-7b78db1ec701",
+    "timestamp": "2026-02-18T06:29:20.287Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "patrick.ndegwa@maishabank.com",
+      "username": "patrick.ndegwa",
+      "role": "Finance Officer"
+    }
+  },
+  {
+    "id": "427ca624-eae9-4962-a5fc-93381eeebea6",
+    "timestamp": "2026-02-18T06:29:32.753Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "margaret.njeri@maishabank.com",
+      "username": "margaret.njeri",
+      "role": "Head of Finance"
+    }
+  },
+  {
+    "id": "56a3abdd-8d5e-4139-bb36-f77ddfcf41d7",
+    "timestamp": "2026-02-18T06:29:52.089Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "maureen.kerubo@maishabank.com",
+      "username": "maureen.kerubo",
+      "role": "Teller"
+    }
+  },
+  {
+    "id": "372359b2-2bfd-4e3a-854b-edc905b951a7",
+    "timestamp": "2026-02-18T06:30:13.522Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "4f38d234-e8c9-49af-a1da-6bc13defc468",
+    "timestamp": "2026-02-18T06:31:27.439Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "b14b4c42-a930-4ffc-8e4a-af63969568ec",
+    "timestamp": "2026-02-18T06:41:13.009Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "9bcbc4c9-93db-4ed6-9882-d47dfc9a71bb",
+    "timestamp": "2026-02-18T06:41:24.578Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "66348120-9157-4b1b-b549-7866fb24304e",
+    "timestamp": "2026-02-18T06:41:40.747Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "2caee8fa-6854-4bb2-bbb2-d3e49c36ddde",
+    "timestamp": "2026-02-18T06:42:51.930Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "107d0dcc-f975-4041-b63f-76fc50a260a4",
+    "timestamp": "2026-02-18T06:43:17.495Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "d386dae1-6d70-4ee1-8911-437e79884f58",
+    "timestamp": "2026-02-18T06:49:55.747Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "27f79dc1-b5c8-427e-a0a2-53fc50775b2b",
+    "timestamp": "2026-02-18T06:51:20.497Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "bb936b6a-e951-4f9d-9766-9fa689786a93",
+    "timestamp": "2026-02-18T06:52:09.462Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "272c2a9f-5794-44b2-b3d3-cf56e9a8896f",
+    "timestamp": "2026-02-18T06:52:27.042Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "905bb5d8-a041-480e-8ccc-325df21d8fad",
+    "timestamp": "2026-02-18T06:53:09.010Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "2b09c8c6-fa22-4892-baf9-59b467919342",
+    "timestamp": "2026-02-18T06:54:50.018Z",
+    "action": "failed-login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "reason": "Invalid password"
+    }
+  },
+  {
+    "id": "8fe61e8e-5bab-4fb2-a317-a215fa2edb9f",
+    "timestamp": "2026-02-18T06:54:52.953Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "4c858a7c-5d11-4f93-b5e0-f24bf71e6446",
+    "timestamp": "2026-02-18T07:01:55.502Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "205b9c34-0a61-4e7d-b480-4c78f3bad9dd",
+    "timestamp": "2026-02-18T07:07:08.299Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "801a5c35-f2f0-41ac-b308-3bb7abb33082",
+    "timestamp": "2026-02-18T07:08:10.583Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "852d3ff5-0d0b-43a8-a130-f73debf4d0fe",
+    "timestamp": "2026-02-18T07:11:50.562Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "3a807396-a7ac-433e-b82e-1fde0b67f013",
+    "timestamp": "2026-02-18T07:12:13.058Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "3d117d3e-7191-4a62-bd37-a9772d8560ee",
+    "timestamp": "2026-02-18T07:19:51.439Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "d4af755e-bbd6-46a5-843f-4cb06ff5d443",
+    "timestamp": "2026-02-18T07:20:32.965Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "12d5dc9f-107b-482a-93b5-a67147e6c06c",
+    "timestamp": "2026-02-18T07:21:14.161Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "automation@maishabank.com",
+      "username": "admin",
+      "role": "Admin"
+    }
+  },
+  {
+    "id": "8e35b679-68c8-4ebb-860c-881ace873ca9",
+    "timestamp": "2026-02-18T07:21:28.852Z",
+    "action": "email-sent",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "to": "mercy.mukhwana@maishabank.com",
+      "subject": "Your Role Has Been Updated",
+      "from": "automation@maishabank.com"
+    }
+  },
+  {
+    "id": "8ba09032-1e58-44d2-a3cd-b9444e60bf18",
+    "timestamp": "2026-02-18T07:21:28.921Z",
+    "action": "update-role",
+    "method": "PUT",
+    "path": "/api/users/update-role",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "mercy.mukhwana@maishabank.com",
+      "role": "HOD",
+      "department": "ICT"
+    }
+  },
+  {
+    "id": "a8acf584-25a3-4f4b-a7d6-a27de71fad3b",
+    "timestamp": "2026-02-18T07:21:50.161Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "mercy.mukhwana@maishabank.com",
+      "username": "mercy.mukhwana",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "9d5579c4-a8c9-45c7-bec1-81e56b3fb583",
+    "timestamp": "2026-02-18T07:24:40.519Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "1789bdaf-95ce-4540-9dc8-6222285b9e21",
+    "timestamp": "2026-02-18T07:25:09.867Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "f900ab2e-5d1b-4b97-9570-11951ab87f81",
+    "timestamp": "2026-02-18T07:33:17.124Z",
+    "action": "failed-login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "reason": "Invalid password"
+    }
+  },
+  {
+    "id": "424a8511-dbca-42f8-b3ab-f40a117ddbc0",
+    "timestamp": "2026-02-18T07:33:21.929Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "93d47746-6196-4f54-8bb7-9bad75754554",
+    "timestamp": "2026-02-18T07:34:23.210Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "aabe83d7-dd32-4eff-91ef-d8c380296248",
+    "timestamp": "2026-02-18T07:45:28.012Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "ebby.gesare@maishabank.com",
+      "username": "ebby.gesare",
+      "role": "Customer Service"
+    }
+  },
+  {
+    "id": "248e1118-a2e9-41c7-9c51-4780d131d93b",
+    "timestamp": "2026-02-18T07:46:05.241Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "faith.bonareri@maishabank.com",
+      "username": "faith.bonareri",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "5928d57f-8af3-4d98-b6f1-5d1dc33295ce",
+    "timestamp": "2026-02-18T07:46:34.309Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "eric.mokaya@maishabank.com",
+      "username": "eric.mokaya",
+      "role": "IT Support"
+    }
+  },
+  {
+    "id": "cd0b5148-176f-4b58-a95e-387fa3270f47",
+    "timestamp": "2026-02-18T07:47:23.245Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "fde251c9-384d-4701-9ff7-87f7262fefbe",
+    "timestamp": "2026-02-18T07:52:47.964Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "d6ca9fe1-4d32-4697-9f1c-07e86b72440d",
+    "timestamp": "2026-02-18T07:53:35.042Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "mercy.mukhwana@maishabank.com",
+      "username": "mercy.mukhwana",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "5be6029b-9081-456d-b49c-f06f649cfaca",
+    "timestamp": "2026-02-18T07:54:10.013Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "55c95e0f-6da3-4cfc-8b65-14674177b10c",
+    "timestamp": "2026-02-18T07:54:24.455Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "485d3901-bb07-4264-b4e8-144cebe280d4",
+    "timestamp": "2026-02-18T08:08:36.586Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "eric.mokaya@maishabank.com",
+      "username": "eric.mokaya",
+      "role": "IT Support"
+    }
+  },
+  {
+    "id": "7cb6c89c-17ea-4608-8ec2-fa43ae8bc811",
+    "timestamp": "2026-02-18T08:09:13.101Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "4f4739d2-4dac-4490-8a07-c38760c24ecf",
+    "timestamp": "2026-02-18T08:09:35.347Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "eric.mokaya@maishabank.com",
+      "username": "eric.mokaya",
+      "role": "IT Support"
+    }
+  },
+  {
+    "id": "43943953-3bd8-4b6a-bc1a-b406cfa1a440",
+    "timestamp": "2026-02-18T08:19:45.347Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
+  },
+  {
+    "id": "1eb922ba-2229-47f4-8308-1adf39e1159a",
+    "timestamp": "2026-02-18T08:20:46.972Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "eric.mokaya@maishabank.com",
+      "username": "eric.mokaya",
+      "role": "IT Support"
+    }
+  },
+  {
+    "id": "ad82978c-2cb9-46a1-8862-4f5ec2f94b7b",
+    "timestamp": "2026-02-18T08:22:34.634Z",
+    "action": "login",
+    "method": "POST",
+    "path": "/api/auth",
+    "ip": "127.0.0.1",
+    "details": {
+      "email": "stevaniah.kavela@maishabank.com",
+      "username": "stevaniah.kavela",
+      "role": "HOD"
+    }
   }
 ]

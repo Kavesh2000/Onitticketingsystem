@@ -827,10 +827,12 @@
                 moduleName: 'Finance',
                 steps: [
                     { stepId: 'finance-officer-review', role: 'Finance Officer', department: 'Finance' },
-                    { stepId: 'head-of-finance-approval', role: 'Head of Finance', department: 'Finance' }
+                    { stepId: 'head-of-finance-review', role: 'Head of Finance', department: 'Finance' },
+                    { stepId: 'teller-review', role: 'Teller', department: 'Branch' },
+                    { stepId: 'marks-disbursed', role: 'Teller', department: 'Branch' }
                 ]
             });
-            console.log('[INIT] Finance workflow initialized');
+            console.log('[INIT] Finance workflow initialized with 4 approval steps');
         } catch (e) {
             console.error('[ERROR] Failed to initialize workflow:', e);
         }

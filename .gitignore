@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+*.log
+dist/
+build/
+.DS_Store
+tickets.json
+users.json
+asset-register.json
+audit.json
+email-log.json

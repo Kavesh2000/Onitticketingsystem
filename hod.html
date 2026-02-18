@@ -207,14 +207,17 @@
                 const usersRes = await fetch('/api/users');
                 const usersData = await usersRes.json();
                 
+                console.log('[HOD LOAD] API response:', usersData);
+                
                 if (usersData.success) {
                     // Filter to only this department, including HOD
                     this.employees = usersData.users.filter(u => u.department === this.currentUser.department);
-                    console.log(`[HOD] Loaded ${this.employees.length} users for ${this.currentUser.department}`);
+                    console.log(`[HOD] Loaded ${this.employees.length} users for department: ${this.currentUser.department}`, this.employees);
                 }
 
                 // Load leave requests from localStorage
                 this.leaveRequests = JSON.parse(localStorage.getItem('leaveRequests') || '[]');
+                console.log('[HOD] Loaded leave requests:', this.leaveRequests);
 
                 // Initialize leave balances
                 this.employees.forEach(emp => {
@@ -230,7 +233,7 @@
             },
 
             showDashboard() {
-                this.showSection('dashboard');
+                showSection('dashboard');
             },
 
             updateDashboard() {
@@ -297,9 +300,31 @@
                     '<p class="p-4 text-center text-gray-500">No employees found</p>';
 
                 // Update leave requests tables
-                // HOD sees all requests for their department
-                const deptPending = this.leaveRequests.filter(r => r.department === this.currentUser.department && r.status === 'pending');
-                const deptApproved = this.leaveRequests.filter(r => r.department === this.currentUser.department && r.status === 'hod-approved');
+                // HOD sees all PENDING requests for their department at stage 0
+                const deptPending = this.leaveRequests.filter(r => {
+                    const isDeptMatch = r.department === this.currentUser.department;
+                    const isPending = r.status === 'Pending';
+                    const isStage0 = r.currentStage === 0;
+                    
+                    console.log(`[HOD] Checking request ${r.id}:`, {
+                        dept: isDeptMatch,
+                        pending: isPending, 
+                        stage0: isStage0,
+                        requestDept: r.department,
+                        hodDept: this.currentUser.department,
+                        requestStage: r.currentStage
+                    });
+                    
+                    return isDeptMatch && isPending && isStage0;
+                });
+                
+                console.log(`[HOD DASHBOARD] Found ${deptPending.length} pending requests for ${this.currentUser.department}`);
+                
+                // HOD sees approved requests for their department
+                const deptApproved = this.leaveRequests.filter(r => 
+                    r.department === this.currentUser.department && 
+                    r.approvals && r.approvals[0] === 'Approved'
+                );
 
                 const pendingHtml = deptPending.map(req => {
                     const days = Math.ceil((new Date(req.end) - new Date(req.start)) / (1000 * 60 * 60 * 24)) + 1;
@@ -342,9 +367,12 @@
                 const req = this.leaveRequests.find(r => r.id === requestId);
                 if (!req) return;
 
-                req.status = 'HOD Approved';
+                // Update workflow state: HOD approval at stage 0
+                req.approvals[0] = 'Approved';
+                req.currentStage = 1;  // Advance to Admin stage
+                req.status = 'Pending';  // Keep as pending for Admin review
                 localStorage.setItem('leaveRequests', JSON.stringify(this.leaveRequests));
-                alert(`Leave request from ${req.userName} approved!`);
+                alert(`Leave request from ${req.applicantName || req.email} approved! Sent to Admin for final approval.`);
                 this.updateDashboard();
             },
 
@@ -355,10 +383,13 @@
                 const req = this.leaveRequests.find(r => r.id === requestId);
                 if (!req) return;
 
+                // Update workflow state: HOD rejection
+                req.approvals[0] = 'Rejected';
                 req.status = 'Rejected';
-                req.rejectReason = reason;
+                req.returnedToApplicant = true;
+                req.rejectionReason = reason;
                 localStorage.setItem('leaveRequests', JSON.stringify(this.leaveRequests));
-                alert(`Leave request from ${req.userName} rejected.`);
+                alert(`Leave request from ${req.applicantName || req.email} rejected and returned to applicant.`);
                 this.updateDashboard();
             }
         };
@@ -402,7 +433,13 @@
         });
 
         function logout() {
-            localStorage.clear();
+            // Clear only auth data, preserve business data (requests, tickets, etc)
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userDept');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userId');
             window.location.href = 'hod.html';
         }
     </script>

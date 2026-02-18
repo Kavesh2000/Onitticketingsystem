@@ -93,10 +93,49 @@
                     <h2 class="text-2xl font-bold">Leave Management</h2>
                     <button onclick="showNewLeaveForm()" class="bg-green-600 text-white px-4 py-2 rounded">+ Request Leave</button>
                 </div>
+                
+                <!-- Leave Balance Card -->
+                <div class="bg-white rounded shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Your Leave Balance</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-blue-600" id="balanceAnnual">21</p>
+                            <p class="text-gray-600">Annual</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-orange-600" id="balanceSick">7</p>
+                            <p class="text-gray-600">Sick</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-purple-600" id="balancePersonal">0</p>
+                            <p class="text-gray-600">Personal</p>
+                        </div>
+                    </div>
+                </div>
+                
                 <div id="newLeaveForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <!-- Department Info -->
+                    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                        <p class="text-sm text-gray-600">Your Department</p>
+                        <p class="text-lg font-bold text-blue-700" id="leaveFormDept">-</p>
+                        <p class="text-xs text-gray-500 mt-1">This determines which HOD will review your request</p>
+                    </div>
+                    
                     <form id="leaveFormEl" class="space-y-3">
-                        <select id="leaveType" required class="p-2 border rounded w-full"><option value="Annual">Annual</option><option value="Sick">Sick</option><option value="Personal">Personal</option></select>
-                        <input id="leaveDays" type="number" min="1" required class="w-full p-2 border rounded" placeholder="Days" />
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Leave Type</label>
+                            <select id="leaveType" required class="p-2 border rounded w-full"><option value="Annual">Annual</option><option value="Sick">Sick</option><option value="Personal">Personal</option></select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Start Date</label>
+                                <input id="leaveStart" type="date" required class="w-full p-2 border rounded" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">End Date</label>
+                                <input id="leaveEnd" type="date" required class="w-full p-2 border rounded" />
+                            </div>
+                        </div>
                         <div class="flex gap-2">
                             <button class="bg-green-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
                             <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewLeaveForm()">Cancel</button>
@@ -273,9 +312,23 @@
         function hideNewClaimForm(){ document.getElementById('newClaimForm').classList.add('hidden'); }
         function showNewTicketForm(){ document.getElementById('newTicketForm').classList.remove('hidden'); }
         function hideNewTicketForm(){ document.getElementById('newTicketForm').classList.add('hidden'); }
-        function showNewLeaveForm(){ document.getElementById('newLeaveForm').classList.remove('hidden'); }
+        function showNewLeaveForm(){ 
+            const userDept = localStorage.getItem('userDept') || 'Not Set';
+            document.getElementById('leaveFormDept').textContent = userDept;
+            console.log('[LEAVE FORM] Showing form with department:', userDept);
+            document.getElementById('newLeaveForm').classList.remove('hidden'); 
+        }
         function hideNewLeaveForm(){ document.getElementById('newLeaveForm').classList.add('hidden'); }
-        function logout(){ localStorage.clear(); window.location.href='index.html'; }
+        function logout(){ 
+            // Clear only auth data, preserve business data (requests, tickets, etc)
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userDept');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userId');
+            window.location.href='index.html'; 
+        }
 
         // init
         window.addEventListener('load', ()=>{
@@ -290,6 +343,7 @@
                         role: 'Finance Officer',
                         department: 'Finance',
                         password: '1234',
+                        leaveBalances: { annual: 21, sick: 7, personal: 0 },
                         createdAt: new Date().toISOString()
                     },
                     {
@@ -298,6 +352,7 @@
                         role: 'Head of Finance',
                         department: 'Finance',
                         password: '1234',
+                        leaveBalances: { annual: 21, sick: 7, personal: 0 },
                         createdAt: new Date().toISOString()
                     }
                 ];
@@ -346,7 +401,7 @@
             };
             workflow = new ApprovalWorkflow(claimWorkflowConfig);
             
-            loadTickets(); loadLeaveRequests(); loadClaims(); loadUsers(); updateStats();
+            loadTickets(); loadLeaveRequests(); loadClaims(); loadUsers(); updateStats(); updateLeaveBalance();
         });
 
         function updateStats(){ const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); document.getElementById('totalTickets').textContent=tickets.length; document.getElementById('openTickets').textContent=tickets.filter(t=>t.status==='Open').length; }
@@ -357,79 +412,139 @@
 
         // Multi-step submission: route to HOD(s) first, then Admin
         document.getElementById('leaveFormEl').addEventListener('submit', async function(e){
+            console.log('[LEAVE] ✓ FORM SUBMIT TRIGGERED');
             e.preventDefault();
-            const id = 'LEAVE-' + Math.random().toString(36).slice(2,9).toUpperCase();
-            const userEmail = localStorage.getItem('userEmail') || '';
-            const userName = localStorage.getItem('userName') || '';
-            // determine user department from stored demo users if available, otherwise fetch users from server
-            const relatedMap = { 'Finance': ['Finance','ICT','Branch','Customer Service'] };
+            try {
+                const userEmail = localStorage.getItem('userEmail') || '';
+                const userName = localStorage.getItem('userName') || '';
+                let userDept = localStorage.getItem('userDept') || null;
+                
+                console.log('[LEAVE] ✓ Form submitted by:', {userEmail, userName, userDept});
+                
+                // Validate department was loaded
+                if (!userDept || userDept === 'Not Set' || userDept === 'Unknown') {
+                    console.warn('[LEAVE] No valid department found. Fetching from backend...');
+                    // Try to get department from backend
+                    try {
+                        const resp = await fetch('/api/users');
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data && data.success && Array.isArray(data.users)) {
+                                const currentUser = data.users.find(u => u.email === userEmail);
+                                if (currentUser) {
+                                    userDept = currentUser.department;
+                                    console.log('[LEAVE] Department fetched from backend:', userDept);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[LEAVE] Could not fetch user from backend:', err);
+                    }
+                }
+                
+                // Still no department? Use General
+                if (!userDept) {
+                    userDept = 'General';
+                    console.warn('[LEAVE] Still no department, using default: ' + userDept);
+                }
 
-            let demoUsers = JSON.parse(localStorage.getItem('financeUsers')||'[]');
-            if (!demoUsers || demoUsers.length === 0) {
-                // fallback to fetching users from backend
+                const id = 'LEAVE-' + Math.random().toString(36).slice(2,9).toUpperCase();
+                const leaveType = document.getElementById('leaveType').value;
+                const startDate = document.getElementById('leaveStart').value;
+                const endDate = document.getElementById('leaveEnd').value;
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Start date and end date are required');
+                }
+                
+                console.log('[LEAVE] Department confirmed:', userDept);
+
+                // Fetch all users to find HODs and Admin
+                let allUsers = [];
                 try {
                     const resp = await fetch('/api/users');
                     if (resp.ok) {
                         const data = await resp.json();
                         if (data && data.success && Array.isArray(data.users)) {
-                            demoUsers = data.users.map(u => ({ name: u.full_name || u.name || '', email: u.email, role: u.role || u.userRole || '', department: u.department }));
+                            allUsers = data.users;
+                            console.log('[LEAVE] Fetched users: total=' + allUsers.length);
                         }
                     }
-                } catch (e) {
-                    console.warn('Could not fetch /api/users:', e.message);
+                } catch (err) {
+                    console.warn('[LEAVE] Could not fetch users:', err.message);
                 }
-            }
 
-            const currentUser = demoUsers.find(u => u.email === userEmail) || {};
-            const userDept = (currentUser.department || localStorage.getItem('userDept') || 'General').toString().trim();
-            const related = relatedMap[userDept] || [userDept];
+                // Find Admin
+                const adminUser = allUsers.find(u => (u.role || '').toLowerCase() === 'admin');
+                console.log('[LEAVE] Admin user:', adminUser ? adminUser.email : 'NOT FOUND');
 
-            // helper: normalize strings for comparison
-            function _norm(s){ return (s||'').toString().trim().toLowerCase(); }
-            function _isHeadRole(u){ const r=_norm(u.role); return r === 'hod' || r.includes('head') || r.includes('head of') || r.includes('manager'); }
+                // Find HODs matching the user's department (case-insensitive)
+                const departmentHODs = allUsers.filter(u => {
+                    const userRole = (u.role || '').toLowerCase();
+                    const userDepartment = (u.department || '').toLowerCase();
+                    const isHOD = userRole === 'hod';
+                    const isSameDept = userDepartment === userDept.toLowerCase();
+                    
+                    if (isHOD && isSameDept) {
+                        console.log('[LEAVE] Found HOD:', {name: u.full_name, email: u.email, dept: u.department});
+                    }
+                    
+                    return isHOD && isSameDept;
+                });
+                
+                console.log('[LEAVE] HODs found for department "' + userDept + '":', departmentHODs.length);
 
-            // collect HOD/viewer emails: any head role within related departments
-            const relatedNorm = related.map(_norm);
-            const viewers = demoUsers.filter(u => _isHeadRole(u) && relatedNorm.includes(_norm(u.department))).map(u => u.email);
+                // Build viewers: HODs + Admin
+                let viewers = departmentHODs.map(u => u.email);
+                if (adminUser && !viewers.includes(adminUser.email)) {
+                    viewers.push(adminUser.email);
+                }
+                
+                // Primary HOD
+                let primaryHOD = departmentHODs.length > 0 ? departmentHODs[0].email : (adminUser ? adminUser.email : null);
 
-            // find primary HOD: prefer same-department head, else first head in related departments
-            let primaryUser = demoUsers.find(u => _isHeadRole(u) && _norm(u.department) === _norm(userDept));
-            if(!primaryUser) primaryUser = demoUsers.find(u => _isHeadRole(u) && relatedNorm.includes(_norm(u.department)));
-            let primaryHOD = primaryUser ? primaryUser.email : null;
-            // fallback: if there are viewers but no primary selected, pick the first viewer
-            if(!primaryHOD && Array.isArray(viewers) && viewers.length > 0) {
-                primaryHOD = viewers[0];
-            }
+                const req = {
+                    id,
+                    leaveType: leaveType,
+                    start: startDate,
+                    end: endDate,
+                    userEmail: userEmail,
+                    userName: userName,
+                    email: userEmail,
+                    applicantName: userName,
+                    department: userDept,
+                    approvals: [null, null],
+                    currentStage: 0,
+                    status: 'Pending',
+                    viewers: viewers,
+                    primaryHOD: primaryHOD,
+                    returnedToApplicant: false,
+                    timestamp: new Date().toISOString()
+                };
 
-            const req = {
-                id,
-                type: document.getElementById('leaveType').value,
-                days: parseInt(document.getElementById('leaveDays').value) || 1,
-                email: userEmail,
-                applicantName: userName,
-                department: userDept,
-                approvals: [null, null], // [HOD, Admin]
-                currentStage: 0,
-                status: 'Pending',
-                viewers: viewers,
-                primaryHOD: primaryHOD || null,
-                returnedToApplicant: false,
-                timestamp: new Date().toISOString()
-            };
+                console.log('[LEAVE] ✓ Request object created:', {
+                    id: req.id,
+                    leaveType: req.leaveType,
+                    start: req.start,
+                    end: req.end,
+                    department: req.department,
+                    viewers: req.viewers,
+                    primaryHOD: req.primaryHOD
+                });
 
-            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
-            reqs.push(req);
-            localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+                reqs.push(req);
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
 
-            hideNewLeaveForm();
-            this.reset();
-            loadLeaveRequests();
+                console.log('[LEAVE] ✓ Request stored in localStorage. Total requests: ' + reqs.length);
 
-            // notify applicant that request was sent to HOD
-            if (req.primaryHOD) {
-                alert('Leave request submitted and sent to your HOD: ' + req.primaryHOD);
-            } else {
-                alert('Leave request submitted. No HOD found for your department; sent to Admin.');
+                hideNewLeaveForm();
+                this.reset();
+                loadLeaveRequests();
+                
+            } catch (err) {
+                console.error('[LEAVE] ✗ Error:', err);
+                alert('Error: ' + err.message);
             }
         });
 
@@ -500,6 +615,35 @@
         }
 
         // Render leave requests with HOD/Admin approval actions
+        function updateLeaveBalance(){
+            // Fetch current user's leave balance from demo users or backend
+            const userEmail = localStorage.getItem('userEmail') || '';
+            let balance = { annual: 21, sick: 7, personal: 0 };
+            
+            // Try to load from financeUsers
+            let demoUsers = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            let currentUser = demoUsers.find(u => u.email === userEmail);
+            
+            if(!currentUser) {
+                // Try to load from employees array  
+                const employees = JSON.parse(localStorage.getItem('employees')||'[]');
+                currentUser = employees.find(u => u.email === userEmail);
+            }
+            
+            if(currentUser && currentUser.leaveBalances) {
+                balance = currentUser.leaveBalances;
+            }
+            
+            // Update the display
+            const annualEl = document.getElementById('balanceAnnual');
+            const sickEl = document.getElementById('balanceSick');
+            const personalEl = document.getElementById('balancePersonal');
+            
+            if(annualEl) annualEl.textContent = balance.annual || 21;
+            if(sickEl) sickEl.textContent = balance.sick || 7;
+            if(personalEl) personalEl.textContent = balance.personal || 0;
+        }
+
         function loadLeaveRequests(){
             const allReqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
             const userEmail = localStorage.getItem('userEmail') || '';
@@ -821,6 +965,7 @@
                 role,
                 department: dept || 'General',
                 password,
+                leaveBalances: { annual: 21, sick: 7, personal: 0 },
                 createdAt: new Date().toISOString()
             };
             
