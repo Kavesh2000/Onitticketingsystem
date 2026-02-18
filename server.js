@@ -641,6 +641,55 @@ app.post('/api/leave/approve', (req, res) => {
         // Audit the approval
         addAuditEntry('leave-approved', req, { userEmail, leaveType, days });
         
+        // Update leave_requests status to approved if leaveId provided
+        if (leaveId) {
+            db.query('UPDATE leave_requests SET status=$2 WHERE id=$1', [leaveId, 'approved']).catch(e => console.error('[DB ERROR] Updating leave_requests status:', e.message));
+        }
+
+        // Update leave_balances for the user (subtract used days from the appropriate balance type)
+        (async () => {
+            try {
+                // Find user id by email
+                const ures = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
+                let userId = ures.rows[0]?.id;
+
+                // If user not in users table, try to find leave_balances by email via join
+                if (!userId) {
+                    console.warn('[LEAVE] User email not found in users table:', userEmail);
+                }
+
+                // Fetch existing balances (if any) by user_id
+                let balances = null;
+                if (userId) {
+                    const lb = await db.query('SELECT balances FROM leave_balances WHERE user_id = $1', [userId]);
+                    if (lb.rows.length > 0 && lb.rows[0].balances) balances = lb.rows[0].balances;
+                }
+
+                // If not found, fall back to default template
+                if (!balances) balances = { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 };
+
+                // Normalize leave type key
+                const t = String(leaveType || '').toLowerCase();
+                const used = Number(days) || 0;
+
+                if (t.includes('annual')) balances.annual = Math.max(0, (Number(balances.annual) || 0) - used);
+                else if (t.includes('sick')) balances.sick = Math.max(0, (Number(balances.sick) || 0) - used);
+                else if (t.includes('personal')) balances.personal = Math.max(0, (Number(balances.personal) || 0) - used);
+                else if (t.includes('maternity')) balances.maternity = Math.max(0, (Number(balances.maternity) || 0) - used);
+                else if (t.includes('paternity')) balances.paternity = Math.max(0, (Number(balances.paternity) || 0) - used);
+                else balances[t] = Math.max(0, (Number(balances[t]) || 0) - used);
+
+                if (userId) {
+                    await db.query(`INSERT INTO leave_balances (user_id, balance, last_updated, balances) VALUES ($1, $2, NOW(), $3) ON CONFLICT (user_id) DO UPDATE SET balances = EXCLUDED.balances, last_updated = NOW()`, [userId, 0, balances]);
+                    console.log('[LEAVE] Updated leave_balances for user id', userId);
+                } else {
+                    console.log('[LEAVE] Skipped DB update for leave_balances because user id not found for', userEmail);
+                }
+            } catch (e) {
+                console.error('[LEAVE ERROR] Failed to update leave balances:', e.message);
+            }
+        })();
+
         res.json({ 
             success: true, 
             message: `Leave approved and email sent to ${userEmail}` 
@@ -802,6 +851,22 @@ app.post('/api/users', async (req, res) => {
             username: userObj.username,
             email: userObj.email
         });
+
+        // Ensure leave_balances row exists for this user with default balances
+        try {
+            const found = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [userObj.email]);
+            const insertedId = found.rows[0]?.id;
+            if (insertedId) {
+                const lb = await db.query('SELECT user_id FROM leave_balances WHERE user_id = $1', [insertedId]);
+                if (lb.rows.length === 0) {
+                    const defaultBalances = { annual: 25, sick: 10, personal: 5, maternity: 0, paternity: 0 };
+                    await db.query('INSERT INTO leave_balances (user_id, balance, last_updated, balances) VALUES ($1, $2, NOW(), $3) ON CONFLICT (user_id) DO NOTHING', [insertedId, 0, defaultBalances]);
+                    console.log('[USER] Created default leave_balances for user id', insertedId);
+                }
+            }
+        } catch (e) {
+            console.error('[USER] Failed to ensure leave_balances for user', userObj.email, e.message);
+        }
 
         res.json({
             success: true,
