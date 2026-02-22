@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Portal</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-link { transition: all 0.3s ease; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.06); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.08); border-left: 4px solid rgba(255,255,255,0.12); }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-600 to-blue-900">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h1 class="text-3xl font-bold text-center mb-2">HR Portal</h1>
+            <button type="button" onclick="window.location.href='index.html'" class="text-blue-600 hover:text-blue-700 text-sm mb-4">← Back</button>
+            <p class="text-center text-gray-600 mb-6">Human Resources Dashboard</p>
+
+            <form id="hrLoginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Email</label>
+                    <input type="email" id="hrUserEmail" required placeholder="you@maishabank.com" class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Password</label>
+                    <input type="password" id="hrUserPassword" placeholder="Password" required class="w-full p-3 border rounded focus:outline-none focus:border-blue-500" />
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded">Login</button>
+            </form>
+            <p id="hrLoginMessage" class="mt-4 text-center text-red-500"></p>
+        </div>
+    </div>
+
+    <!-- Main content for HR users -->
+    <div id="portalContent" class="hidden">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold mb-4">Welcome, <span id="hrUserName"></span></h2>
+            <p class="mb-4">The HR portal provides access to the following modules (placeholders):</p>
+            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                <li>Employee Management</li>
+                <li>Leave Management</li>
+                <li>Payroll Management</li>
+                <li>Attendance Management</li>
+                <li>Performance Management</li>
+                <li>Training &amp; Compliance</li>
+                <li>Recruitment &amp; Onboarding</li>
+                <li>Staff Loans &amp; Benefits</li>
+                <li>Exit / Offboarding Management</li>
+                <li>User &amp; Access Control</li>
+                <li>Reporting &amp; Analytics</li>
+                <li>Audit &amp; Logs</li>
+            </ul>
+            <button onclick="logout()" class="mt-6 px-4 py-2 bg-red-600 text-white rounded">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        // hr portal no longer preloads users. login is open for typing but
+        // authentication will validate HR role/department.
+        document.getElementById('hrLoginForm').addEventListener('submit', async function(e){
+            e.preventDefault();
+            const email = document.getElementById('hrUserEmail').value;
+            const pwd = document.getElementById('hrUserPassword').value;
+            const res = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pwd }) });
+            const d=await res.json();
+            if (d.success) {
+                const role = (d.user.role||'').toLowerCase();
+                const dept = (d.user.department||'').toLowerCase();
+                if (role !== 'hr' && dept !== 'hr') {
+                    document.getElementById('hrLoginMessage').textContent = 'Access denied: you do not have HR rights';
+                    return;
+                }
+                localStorage.setItem('hrUserEmail', email);
+                localStorage.setItem('hrUserName', d.user.full_name || email);
+                document.getElementById('hrUserName').textContent = d.user.full_name || email;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('portalContent').classList.remove('hidden');
+            } else {
+                document.getElementById('hrLoginMessage').textContent = d.message || 'Login failed';
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('hrUserEmail');
+            localStorage.removeItem('hrUserName');
+            window.location.href='index.html';
+        }
+
+        // no users to load since typing is allowed
+    </script>
+</body>
+</html>

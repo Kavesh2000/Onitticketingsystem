@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Ticket - Bank Ticketing System</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="modern-ui.css">
+    <style>
+        .ticket-card {
+            transition: all 0.3s ease;
+        }
+        .ticket-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .priority-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .priority-P1 { background: #fee2e2; color: #dc2626; }
+        .priority-P2 { background: #fef3c7; color: #d97706; }
+        .priority-P3 { background: #dbeafe; color: #2563eb; }
+        .priority-P4 { background: #f3f4f6; color: #6b7280; }
+        .sla-timer {
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .sla-warning { color: #d97706; }
+        .sla-breach { color: #dc2626; }
+        .sla-good { color: #059669; }
+    </style>
+</head>
+<body class="text-gray-800 light-theme">
+
+    <!-- Simplified Header for Ticket Submission -->
+    <header id="header" class="bg-blue-900 py-4 shadow-lg">
+        <div class="container mx-auto px-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-building text-white text-xl"></i>
+                    <span class="text-white font-bold text-lg">Onit MFB</span>
+                </div>
+                <h1 class="text-white text-xl font-semibold">Submit Ticket</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="user-info text-right">
+                    <div class="user-name text-white font-medium" id="userName">User</div>
+                    <div class="user-role text-blue-200 text-sm" id="userRole">Department</div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="submit.html" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+                        <i class="fas fa-ticket-alt mr-2"></i>Submit Ticket
+                    </a>
+                    <a href="tickets.html" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-list mr-2"></i>View Tickets
+                    </a>
+                    <button id="logout" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div id="userTypeSelection" class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-900 flex items-center justify-center gap-2">
+                <i class="fas fa-ticket-alt text-teal-600"></i>
+                Submit a Ticket
+            </h2>
+            <div class="space-y-4">
+                <p class="text-center text-gray-700 text-lg">What type of ticket are you submitting?</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="customerBtn" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:shadow-lg px-6 py-3 rounded-lg font-semibold transition text-white flex items-center justify-center gap-2">
+                        <i class="fas fa-user-circle"></i>
+                        Customer Ticket
+                    </button>
+                    <button id="internalBtn" class="bg-gradient-to-r from-teal-600 to-teal-700 hover:shadow-lg px-6 py-3 rounded-lg font-semibold transition text-white flex items-center justify-center gap-2">
+                        <i class="fas fa-building"></i>
+                        Internal Ticket
+                    </button>
+                </div>
+            </div>
+            <div id="deptSelection" class="hidden space-y-4 mt-6 pt-6 border-t border-gray-200">
+                <label for="fromDeptSelect" class="block text-sm font-medium text-gray-700">Select Your Department:</label>
+                <select id="fromDeptSelect" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="Customer Service" class="text-gray-900">Customer Service</option>
+                    <option value="IT" class="text-gray-900">IT</option>
+                    <option value="Finance" class="text-gray-900">Finance</option>
+                    <option value="Security" class="text-gray-900">Security</option>
+                    <option value="Operations" class="text-gray-900">Operations</option>
+                    <option value="ICT" class="text-gray-900">ICT</option>
+                    <option value="Risk & Compliance" class="text-gray-900">Risk & Compliance</option>
+                    <option value="Internal Audit" class="text-gray-900">Internal Audit</option>
+                    <option value="Management" class="text-gray-900">Management</option>
+                    <option value="Data Analysis" class="text-gray-900">Data Analysis</option>
+                </select>
+                <button id="proceedBtn" class="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:shadow-lg px-4 py-2 rounded-lg font-semibold transition text-white">Proceed to Ticket Form</button>
+            </div>
+        </div>
+
+        <div id="ticketFormContainer" class="hidden">
+            <div class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+                <h2 class="text-3xl font-bold mb-6 text-center text-gray-900">Create Ticket</h2>
+                <form id="ticketForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">Full Name <span class="text-red-500">*</span></label>
+                            <input type="text" id="name" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div id="emailField">
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span></label>
+                            <input type="email" id="email" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="priority" class="block text-sm font-medium text-gray-700">Priority <span class="text-red-500">*</span></label>
+                            <div class="mt-1 p-3 bg-blue-50 border border-blue-200 rounded-md text-gray-900">
+                                <div id="priorityDisplay" class="font-medium">Will be auto-assigned based on issue type</div>
+                                <input type="hidden" id="priority" value="P4">
+                                <p class="text-xs text-gray-500 mt-1"><i class="fas fa-robot mr-1"></i>Automated Priority Assignment</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="category" class="block text-sm font-medium text-gray-700">Category <span class="text-red-500">*</span></label>
+                            <select id="category" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                <option value="Incident">Incident</option>
+                                <option value="Request">Request</option>
+                                <option value="Problem">Problem</option>
+                                <option value="Change">Change</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="submissionType" class="block text-sm font-medium text-gray-700">Submitting For <span class="text-red-500">*</span></label>
+                        <select id="submissionType" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            <option value="">Select type</option>
+                            <option value="Customer">Customer</option>
+                            <option value="User">User</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" id="fromDept">
+                    
+                    <div id="toDeptContainer">
+                        <label for="toDept" class="block text-sm font-medium text-gray-700">Assign To Department <span class="text-red-500">*</span></label>
+                        <div class="mt-1 flex gap-2 items-start">
+                            <div class="flex-1">
+                                <select id="toDept" required class="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                                    <option value="">Select department</option>
+                                    <option value="Branch">Branch</option>
+                                    <option value="ICT">ICT</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1"><i class="fas fa-lightbulb mr-1"></i>Suggested: <span id="toDeptSuggestion">Select issue type to see suggestion</span></p>
+                    </div>
+
+                    <div>
+                        <label for="issueType" class="block text-sm font-medium text-gray-700">Issue Type <span class="text-red-500">*</span></label>
+                        <select id="issueType" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Description <span class="text-red-500">*</span></label>
+                        <textarea id="description" rows="5" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Ticket Details</label>
+                        <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <div>
+                                <p class="text-xs text-gray-500">Ticket ID</p>
+                                <p class="font-mono font-bold text-gray-900" id="ticketIdPreview">Auto-Generated</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Timestamp</p>
+                                <p class="text-xs text-gray-700" id="timestampPreview">Current Time</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Assigned Agent</p>
+                                <p class="text-xs text-gray-700" id="agentPreview">Auto-Assigned</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="attachment" class="block text-sm font-medium text-gray-700">Attachments (optional)</label>
+                        <input type="file" id="attachment" multiple class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-teal-600 to-teal-700 hover:shadow-lg px-4 py-2 rounded-lg font-semibold transition text-white flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i>
+                            Submit Ticket
+                        </button>
+                        <button type="button" id="backBtn" class="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold transition text-gray-800 flex items-center justify-center gap-2">
+                            <i class="fas fa-arrow-left"></i>
+                            Back
+                        </button>
+                    </div>
+                </form>
+                <p id="message" class="mt-4 text-center font-medium"></p>
+                <div id="successNotification" class="hidden mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Ticket created successfully!
+                </div>
+            </div>
+        </div>
+
+        <!-- Tickets List -->
+        <div id="ticketsSection" class="hidden mt-8">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900">Recent Tickets</h2>
+            <div id="ticketsContainer" class="space-y-4">
+                <!-- Tickets will be loaded here -->
+            </div>
+            <div id="noTickets" class="text-center py-8">
+                <p class="text-gray-500">No tickets found</p>
+            </div>
+        </div>
+    </main>
+
+    <footer id="footer">
+        <p>&copy; 2026 Onit Microfinance Bank. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+    <script src="script.js"></script>
+    <script>
+        console.log('✅ Submit form script loaded');
+        
+        // Check login - accept userDept or portal-specific variants
+        const userDept = localStorage.getItem('userDept') || localStorage.getItem('financeUserDept') || localStorage.getItem('branchUserDept');
+        if (!userDept) {
+            console.log('🚫 No user department found, redirecting to login');
+            window.location.href = 'index.html';
+        }
+        // Set standard key for compatibility
+        if (!localStorage.getItem('userDept') && userDept) {
+            localStorage.setItem('userDept', userDept);
+        }
+
+        // Set user info
+        const dept = localStorage.getItem('userDept');
+        document.getElementById('userName').textContent = 'User (' + dept + ')';
+        document.getElementById('userRole').textContent = dept + ' Department';
+
+        // ===== DEFINE ALL MISSING FUNCTIONS =====
+        
+        // Function to generate ticket ID - AUTOMATIC
+        function generateTicketId() {
+            const counter = String(parseInt(localStorage.getItem('ticketCounter') || '10000') + 1).padStart(6, '0');
+            localStorage.setItem('ticketCounter', counter);
+            const ticketId = 'TICK-' + counter;
+            console.log('🎫 Generated Ticket ID:', ticketId);
+            return ticketId;
+        }
+
+        // Function to get current timestamp - AUTOMATIC
+        function getCurrentTimestamp() {
+            const timestamp = new Date().toISOString();
+            console.log('⏰ Generated Timestamp:', timestamp);
+            return timestamp;
+        }
+
+        // Function to auto-assign priority based on issue type and category
+        function autoAssignPriority(issueType, category) {
+            const criticalIssues = ['Security Incident', 'Password Reset', 'Suspicious Activity', 'System Down', 'Data Breach', 'Access Control'];
+            const highIssues = ['Access Request', 'Hardware Problem', 'Network Issue', 'Payment Issue', 'Compliance Check'];
+            const mediumIssues = ['Software Issue', 'Account Opening', 'Loan Inquiry', 'Process Issue', 'Report Request'];
+            
+            let priority = 'P4';
+            if (criticalIssues.includes(issueType)) priority = 'P1';
+            else if (highIssues.includes(issueType)) priority = 'P2';
+            else if (mediumIssues.includes(issueType)) priority = 'P3';
+            else if (category === 'Incident') priority = 'P2';
+            else if (category === 'Problem') priority = 'P3';
+            else if (category === 'Change') priority = 'P4';
+            
+            console.log('⚡ Auto-assigned Priority:', priority, 'for issue:', issueType);
+            return priority;
+        }
+
+        // Function to route ticket to correct department
+        function routeTicketToDepartment(issueType, fromDept) {
+            const routing = {
+                'Account Opening': 'Customer Service',
+                'Loan Inquiry': 'Customer Service',
+                'Transaction Issue': 'Customer Service',
+                'General Inquiry': 'Customer Service',
+                'Software Issue': 'IT',
+                'Hardware Problem': 'IT',
+                'Network Issue': 'IT',
+                'Access Request': 'IT',
+                'System Down': 'IT',
+                'Payment Issue': 'Finance',
+                'Statement Request': 'Finance',
+                'Fee Inquiry': 'Finance',
+                'Account Balance': 'Finance',
+                'Budget Question': 'Finance',
+                'Suspicious Activity': 'Security',
+                'Password Reset': 'Security',
+                'Access Control': 'Security',
+                'Security Incident': 'Security',
+                'Data Breach': 'Security',
+                'Process Issue': 'Operations',
+                'Documentation': 'Operations',
+                'Schedule Change': 'Operations',
+                'Resource Request': 'Operations',
+                'Facilities': 'Operations',
+                'Compliance Check': 'Risk & Compliance',
+                'Risk Assessment': 'Risk & Compliance',
+                'Audit Request': 'Risk & Compliance',
+                'Policy Question': 'Risk & Compliance',
+                'Audit Finding': 'Internal Audit',
+                'Process Review': 'Internal Audit',
+                'Compliance Issue': 'Internal Audit',
+                'Report Request': 'Internal Audit',
+                'Strategic Issue': 'Management',
+                'Performance Review': 'Management',
+                'Executive Request': 'Management',
+                'Report Generation': 'Data Analysis',
+                'Data Query': 'Data Analysis',
+                'Analytics Request': 'Data Analysis',
+                'Dashboard Issue': 'Data Analysis'
+            };
+            
+            const dept = routing[issueType] || fromDept || 'Customer Service';
+            console.log('🚀 Routing ticket to department:', dept);
+            return dept;
+        }
+
+        // Agent assignments
+        const AGENT_ASSIGNMENTS = {
+            'Customer Service': ['Agent-CS-001', 'Agent-CS-002', 'Agent-CS-003'],
+            'IT': ['Agent-IT-001', 'Agent-IT-002', 'Agent-IT-003'],
+            'Finance': ['Agent-FIN-001', 'Agent-FIN-002', 'Agent-FIN-003'],
+            'Security': ['Agent-SEC-001', 'Agent-SEC-002', 'Agent-SEC-003'],
+            'Operations': ['Agent-OPS-001', 'Agent-OPS-002', 'Agent-OPS-003'],
+            'Risk & Compliance': ['Agent-RC-001', 'Agent-RC-002', 'Agent-RC-003'],
+            'Internal Audit': ['Agent-IA-001', 'Agent-IA-002', 'Agent-IA-003'],
+            'Management': ['Agent-MGT-001', 'Agent-MGT-002', 'Agent-MGT-003'],
+            'Data Analysis': ['Agent-DA-001', 'Agent-DA-002', 'Agent-DA-003']
+        };
+
+        const agentLoadMap = {};
+
+        // Function to auto-assign agent to ticket (load-balanced)
+        // Async function to auto-assign user from department with least tickets
+        async function autoAssignAgentAsync(department) {
+            try {
+                // Fetch users from backend filtered by department
+                const resp = await fetch('/api/users');
+                if (!resp.ok) throw new Error('Failed to fetch users');
+                const data = await resp.json();
+                let users = (data.users || []).filter(u => (u.department || '').toLowerCase() === department.toLowerCase());
+                
+                if (users.length === 0) {
+                    // Fallback to hardcoded agents if no users found
+                    const agents = AGENT_ASSIGNMENTS[department] || AGENT_ASSIGNMENTS['Customer Service'];
+                    let selectedAgent = agents[0];
+                    let minLoad = agentLoadMap[selectedAgent] || 0;
+                    for (let agent of agents) {
+                        const load = agentLoadMap[agent] || 0;
+                        if (load < minLoad) {
+                            minLoad = load;
+                            selectedAgent = agent;
+                        }
+                    }
+                    agentLoadMap[selectedAgent] = (agentLoadMap[selectedAgent] || 0) + 1;
+                    return selectedAgent;
+                }
+                
+                // Count tickets for each user from localStorage
+                const allTickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+                const userTicketCounts = {};
+                users.forEach(u => {
+                    const ticketCount = allTickets.filter(t => (t.assigned_to === u.full_name || t.assigned_to === u.email || t.assignedTo === u.id)).length;
+                    userTicketCounts[u.email] = ticketCount;
+                });
+                
+                // Find user with least tickets
+                let selectedUser = users[0];
+                let minTickets = userTicketCounts[users[0].email] || 0;
+                for (let user of users) {
+                    const count = userTicketCounts[user.email] || 0;
+                    if (count < minTickets) {
+                        minTickets = count;
+                        selectedUser = user;
+                    }
+                }
+                
+                console.log(`Assigned ticket to ${selectedUser.full_name || selectedUser.email} with ${minTickets} tickets`);
+                return selectedUser.full_name || selectedUser.email || selectedUser.id;
+            } catch (err) {
+                console.warn('Error in async assignment, falling back:', err);
+                const agents = AGENT_ASSIGNMENTS[department] || AGENT_ASSIGNMENTS['Customer Service'];
+                let selectedAgent = agents[0];
+                let minLoad = agentLoadMap[selectedAgent] || 0;
+                for (let agent of agents) {
+                    const load = agentLoadMap[agent] || 0;
+                    if (load < minLoad) {
+                        minLoad = load;
+                        selectedAgent = agent;
+                    }
+                }
+                agentLoadMap[selectedAgent] = (agentLoadMap[selectedAgent] || 0) + 1;
+                return selectedAgent;
+            }
+        }
+
+        function autoAssignAgent(department) {
+            const agents = AGENT_ASSIGNMENTS[department] || AGENT_ASSIGNMENTS['Customer Service'];
+            
+            // Get agent with lowest load
+            let selectedAgent = agents[0];
+            let minLoad = agentLoadMap[selectedAgent] || 0;
+            
+            for (let agent of agents) {
+                const load = agentLoadMap[agent] || 0;
+                if (load < minLoad) {
+                    minLoad = load;
+                    selectedAgent = agent;
+                }
+            }
+            
+            // Increment agent load
+            agentLoadMap[selectedAgent] = (agentLoadMap[selectedAgent] || 0) + 1;
+            
+            console.log('👤 Auto-assigned Agent:', selectedAgent, 'with load:', agentLoadMap[selectedAgent]);
+            return selectedAgent;
+        }
+
+        // SLA Configuration
+        const SLA_CONFIG = {
+            'P1': 1 * 60 * 60 * 1000, // 1 hour
+            'P2': 4 * 60 * 60 * 1000, // 4 hours
+            'P3': 24 * 60 * 60 * 1000, // 24 hours
+            'P4': 72 * 60 * 60 * 1000  // 72 hours
+        };
+
+        // Calculate SLA due date
+        function calculateSLADue(priority, timestamp) {
+            const slaMs = SLA_CONFIG[priority] || SLA_CONFIG['P4'];
+            const slaDate = new Date(new Date(timestamp).getTime() + slaMs).toISOString();
+            console.log('📅 SLA Due calculated:', slaDate, 'for priority:', priority);
+            return slaDate;
+        }
+
+        // Populate issue types based on department
+        function populateIssueTypes(dept) {
+            console.log('📋 populateIssueTypes called with dept:', dept);
+            
+            const issueTypeSelect = document.getElementById('issueType');
+            if (!issueTypeSelect) {
+                console.warn('⚠️ Issue type select not found');
+                return;
+            }
+            
+            console.log('✓ Found issue type select element');
+            issueTypeSelect.innerHTML = '<option value="">Select an issue type</option>';
+
+            const issueTypes = {
+                'Customer Service': ['Account Opening', 'Loan Inquiry', 'Transaction Issue', 'General Inquiry', 'Other'],
+                'IT': ['Software Issue', 'Hardware Problem', 'Network Issue', 'Access Request', 'System Down', 'Other'],
+                'Finance': ['Payment Issue', 'Statement Request', 'Fee Inquiry', 'Account Balance', 'Budget Question', 'Other'],
+                'Security': ['Suspicious Activity', 'Password Reset', 'Access Control', 'Security Incident', 'Data Breach', 'Other'],
+                'Operations': ['Process Issue', 'Documentation', 'Schedule Change', 'Resource Request', 'Facilities', 'Other'],
+                'Risk & Compliance': ['Compliance Check', 'Risk Assessment', 'Audit Request', 'Policy Question', 'Other'],
+                'Internal Audit': ['Audit Finding', 'Process Review', 'Compliance Issue', 'Report Request', 'Other'],
+                'Management': ['Strategic Issue', 'Performance Review', 'Budget Question', 'Executive Request', 'Other'],
+                'Data Analysis': ['Report Generation', 'Data Query', 'Analytics Request', 'Dashboard Issue', 'Other']
+            };
+
+            const types = issueTypes[dept] || issueTypes['Customer Service'];
+            console.log('✓ Found issue types:', types);
+            
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                option.className = 'text-gray-900';
+                issueTypeSelect.appendChild(option);
+            });
+            
+            console.log('✓ Issue types populated:', types.length, 'items');
+        }
+        
+        // Function to update ticket preview
+        function updateTicketPreview() {
+            console.log('🔄 Updating ticket preview...');
+            
+            const ticketId = generateTicketId();
+            document.getElementById('ticketIdPreview').textContent = ticketId;
+            
+            const now = new Date();
+            document.getElementById('timestampPreview').textContent = now.toLocaleString();
+            
+            const toDept = document.getElementById('toDept').value;
+            if (toDept) {
+                const agent = autoAssignAgent(toDept);
+                document.getElementById('agentPreview').innerHTML = `<strong>${agent}</strong> <i class="fas fa-user-tie ml-1"></i>`;
+            } else {
+                document.getElementById('agentPreview').innerHTML = 'Select department';
+            }
+            
+            console.log('✅ Preview updated');
+        }
+
+        // Fallback: save locally if API not available (for development)
+        function saveTicketLocally(ticket) {
+            console.log('💾 Saving ticket locally to localStorage...');
+            if (db) {
+                db.run("INSERT INTO tickets VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [
+                    ticket.id, ticket.name, ticket.email, ticket.fromDept, 'Request', ticket.toDept, 
+                    ticket.issueType, ticket.description, ticket.status, ticket.priority, ticket.escalated, 
+                    ticket.attachment, ticket.timestamp, ticket.category, ticket.sla_due, ticket.assigned_to
+                ]);
+                saveDbToStorage();
+            } else {
+                // Save to localStorage with standardized field names
+                const ticketToSave = {
+                    ...ticket,
+                    department: ticket.toDept, // Standardize field name for filtering across portals
+                    created_by: ticket.name,
+                    created_by_email: ticket.email,
+                    assigned_to: ticket.assigned_to || 'Unassigned'
+                };
+                const tickets = JSON.parse(localStorage.getItem('tickets') || '[]');
+                tickets.push(ticketToSave);
+                localStorage.setItem('tickets', JSON.stringify(tickets));
+            }
+            console.log('✅ Ticket saved to localStorage');
+        }
+
+        // Form validation
+        function validateForm() {
+            let isValid = true;
+            const errors = {};
+
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(el => el.remove());
+
+            // Required fields
+            const requiredFields = ['name', 'email', 'priority', 'category', 'toDept', 'issueType', 'description'];
+            requiredFields.forEach(field => {
+                const element = document.getElementById(field);
+                if (!element.value.trim()) {
+                    showError(element, `${field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')} is required`);
+                    isValid = false;
+                }
+            });
+
+            // Email validation
+            const email = document.getElementById('email').value;
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (email && !emailRegex.test(email)) {
+                showError(document.getElementById('email'), 'Please enter a valid email address');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function showError(element, message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message text-red-500 text-sm mt-1';
+            errorDiv.textContent = message;
+            element.parentNode.appendChild(errorDiv);
+        }
+
+        
+
+        // SINGLE consolidated DOMContentLoaded for ALL initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 === FORM INITIALIZATION STARTING ===');
+            
+            // 1. Set up toDept change listener
+            const toDeptSelect = document.getElementById('toDept');
+            if (toDeptSelect) {
+                toDeptSelect.addEventListener('change', function() {
+                    console.log('🔄 Department changed to:', this.value);
+                    populateIssueTypes(this.value);
+                });
+                console.log('✓ toDept change listener attached');
+            }
+            
+            // 2. Set up issueType change listener
+            const issueTypeSelect = document.getElementById('issueType');
+            if (issueTypeSelect) {
+                issueTypeSelect.addEventListener('change', function() {
+                    const issueType = this.value;
+                    const category = document.getElementById('category').value || 'Request';
+                    
+                    console.log('🎯 Issue type changed to:', issueType, 'Category:', category);
+                    
+                    // Show suggestion
+                    const suggestedDept = routeTicketToDepartment(issueType, document.getElementById('fromDept').value);
+                    document.getElementById('toDeptSuggestion').textContent = suggestedDept;
+                    console.log('💡 Department suggestion updated to:', suggestedDept);
+                    
+                    // Auto-assign priority
+                    const priority = autoAssignPriority(issueType, category);
+                    document.getElementById('priority').value = priority;
+                    const priorityText = priority === 'P1' ? 'Critical' : priority === 'P2' ? 'High' : priority === 'P3' ? 'Medium' : 'Low';
+                    document.getElementById('priorityDisplay').innerHTML = `<strong>${priority}</strong> - ${priorityText} <i class="fas fa-check-circle text-green-600 ml-2"></i>`;
+                    console.log('⚡ Priority updated to:', priority);
+                    
+                    // Show preview of automated assignments
+                    updateTicketPreview();
+                });
+                console.log('✓ issueType change listener attached');
+            }
+            
+            // 3. Set up category change listener
+            const categorySelect = document.getElementById('category');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function() {
+                    const issueType = document.getElementById('issueType').value;
+                    console.log('📌 Category changed to:', this.value);
+                    
+                    if (issueType) {
+                        // Re-calculate priority based on new category
+                        const priority = autoAssignPriority(issueType, this.value);
+                        document.getElementById('priority').value = priority;
+                        const priorityText = priority === 'P1' ? 'Critical' : priority === 'P2' ? 'High' : priority === 'P3' ? 'Medium' : 'Low';
+                        document.getElementById('priorityDisplay').innerHTML = `<strong>${priority}</strong> - ${priorityText} <i class="fas fa-check-circle text-green-600 ml-2"></i>`;
+                        console.log('⚡ Priority recalculated to:', priority);
+                    }
+                });
+                console.log('✓ category change listener attached');
+            }
+            
+            // 4. Initial population of issue types
+            populateIssueTypes('Customer Service');
+            console.log('✓ Initial issue types populated');
+            
+            // 5. Set up logout button
+            const logoutBtn = document.getElementById('logout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    localStorage.removeItem('userDept');
+                    window.location.href = 'index.html';
+                });
+                console.log('✓ Logout button listener attached');
+            }
+
+            // 6. Set up customer button
+            const customerBtn = document.getElementById('customerBtn');
+            if (customerBtn) {
+                customerBtn.addEventListener('click', function() {
+                    console.log('🔘 Customer button clicked');
+                    document.getElementById('userTypeSelection').style.display = 'none';
+                    document.getElementById('ticketFormContainer').style.display = 'block';
+                    document.getElementById('fromDept').value = 'Customer';
+                    document.getElementById('name').value = 'Customer User';
+                    document.getElementById('email').value = 'customer@onitbank.com';
+                    document.getElementById('toDept').value = 'Customer Service';
+                    document.getElementById('toDeptSuggestion').textContent = 'Customer Service (default for customers)';
+                    populateIssueTypes('Customer Service');
+                    console.log('✅ Customer form initialized');
+                });
+                console.log('✓ Customer button listener attached');
+            }
+
+            // 7. Set up internal button
+            const internalBtn = document.getElementById('internalBtn');
+            if (internalBtn) {
+                internalBtn.addEventListener('click', function() {
+                    console.log('🔘 Internal button clicked');
+                    document.getElementById('userTypeSelection').style.display = 'none';
+                    document.getElementById('deptSelection').style.display = 'block';
+                    console.log('✅ Department selection shown');
+                });
+                console.log('✓ Internal button listener attached');
+            }
+
+            // 8. Set up proceed button
+            const proceedBtn = document.getElementById('proceedBtn');
+            if (proceedBtn) {
+                proceedBtn.addEventListener('click', function() {
+                    const selectedDept = document.getElementById('fromDeptSelect').value;
+                    console.log('✓ Proceeding with department:', selectedDept);
+                    if (!selectedDept) {
+                        console.warn('⚠️ No department selected');
+                        alert('Please select your department');
+                        return;
+                    }
+                    document.getElementById('deptSelection').style.display = 'none';
+                    document.getElementById('ticketFormContainer').style.display = 'block';
+                    document.getElementById('fromDept').value = selectedDept;
+                    document.getElementById('name').value = 'Internal User - ' + selectedDept;
+                    document.getElementById('email').value = 'internal@onitbank.com';
+                    document.getElementById('toDept').value = selectedDept;
+                    document.getElementById('toDeptSuggestion').textContent = selectedDept + ' (your department - can be changed)';
+                    populateIssueTypes(selectedDept);
+                    console.log('✅ Internal form initialized for:', selectedDept);
+                });
+                console.log('✓ Proceed button listener attached');
+            }
+
+            // 9. Set up back button
+            const backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function() {
+                    console.log('🔙 Back button clicked');
+                    document.getElementById('ticketFormContainer').style.display = 'none';
+                    document.getElementById('userTypeSelection').style.display = 'block';
+                    document.getElementById('deptSelection').style.display = 'none';
+                    console.log('✅ Back to user type selection');
+                });
+                console.log('✓ Back button listener attached');
+            }
+
+            // 10. Set up form submission
+            const ticketForm = document.getElementById('ticketForm');
+            if (ticketForm) {
+                ticketForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('📝 Form submission started...');
+                    
+                    if (!validateForm()) {
+                        console.warn('❌ Form validation failed');
+                        return;
+                    }
+                    
+                    console.log('✔️ Form validation passed');
+                    
+                    const issueType = document.getElementById('issueType').value;
+                    const category = document.getElementById('category').value;
+                    const fromDept = document.getElementById('fromDept').value;
+                    const toDept = document.getElementById('toDept').value;
+                    
+                    console.log('📋 Form values extracted:', { issueType, category, fromDept, toDept });
+                    
+                    const priority = autoAssignPriority(issueType, category);
+                    const ticketId = generateTicketId();
+                    const timestamp = getCurrentTimestamp();
+                    const assignedAgent = await autoAssignAgentAsync(toDept);
+                    const slaDate = calculateSLADue(priority, timestamp);
+                    
+                    const ticketData = {
+                        id: ticketId,
+                        timestamp: timestamp,
+                        priority: priority,
+                        toDept: toDept,
+                        assigned_to: assignedAgent,
+                        sla_due: slaDate,
+                        status: 'Open',
+                        escalated: 'No',
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        fromDept: fromDept,
+                        ticketType: 'Request',
+                        issueType: issueType,
+                        description: document.getElementById('description').value,
+                        attachment: document.getElementById('attachment').files.length > 0 ? Array.from(document.getElementById('attachment').files).map(f => f.name).join(', ') : '',
+                        category: category
+                    };
+
+                    console.log('📤 Sending ticket to /api/tickets...');
+                    console.log('Full Payload:', JSON.stringify(ticketData, null, 2));
+                    
+                    fetch('/api/tickets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(ticketData)
+                    })
+                    .then(response => {
+                        console.log('📨 Response received - Status:', response.status, response.statusText);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('✅ Response data from server:', data);
+                        if (data.success) {
+                            console.log('🎉 Ticket created successfully!');
+                            // Also save to localStorage for local tracking
+                            saveTicketLocally(ticketData);
+                            const notification = document.getElementById('successNotification');
+                            notification.innerHTML = `
+                                <div class="flex gap-3 items-start">
+                                    <i class="fas fa-check-circle text-lg mt-1"></i>
+                                    <div class="text-left flex-1">
+                                        <h4 class="font-bold mb-2">✅ Ticket Created Successfully!</h4>
+                                        <div class="text-sm space-y-1">
+                                            <p><strong>Ticket ID:</strong> ${ticketData.id}</p>
+                                            <p><strong>Priority:</strong> ${ticketData.priority}</p>
+                                            <p><strong>Routed To:</strong> ${ticketData.toDept}</p>
+                                            <p><strong>Assigned Agent:</strong> ${ticketData.assigned_to}</p>
+                                            <p><strong>SLA Due:</strong> ${new Date(ticketData.sla_due).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            notification.classList.remove('hidden');
+                            setTimeout(() => notification.classList.add('hidden'), 7000);
+                            ticketForm.reset();
+                            document.getElementById('priority').value = 'P4';
+                            document.getElementById('priorityDisplay').textContent = 'Will be auto-assigned based on issue type';
+                            document.getElementById('toDeptSuggestion').textContent = 'Select issue type to see suggestion';
+                            console.log('📋 Form cleared and reset');
+                        } else {
+                            console.error('❌ API Error:', data.message);
+                            alert('Failed to create ticket: ' + (data.message || 'Unknown error'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('❌ Network Error:', error);
+                        console.error('Error stack:', error.stack);
+                        alert('Error creating ticket: ' + error.message + '\n\nCheck browser console (F12) for details.');
+                    });
+                });
+                console.log('✓ Form submission listener attached');
+            }
+            
+            console.log('✅ === FORM INITIALIZATION COMPLETE ===');
+        });
+
+        // Send notification function
+        function sendNotification(ticketData) {
+            fetch('/api/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: ticketData.email,
+                    template: 'generalNotification',
+                    data: {
+                        subject: `Ticket ${ticketData.id} Created`,
+                        title: 'Ticket Submitted Successfully',
+                        message: `Your ticket has been submitted and assigned to ${ticketData.toDept}. Ticket ID: ${ticketData.id}`
+                    }
+                })
+            }).catch(err => console.log('Notification failed:', err));
+        }
+    </script>
+</body>
+</html>

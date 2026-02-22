@@ -1,0 +1,46 @@
+[
+  {
+    "id": "LEAVE-UP5RCPC",
+    "type": "Annual",
+    "days": 3,
+    "email": "margaret.njeri@maishabank.com",
+    "applicantName": "Margaret Njeri",
+    "department": "Finance",
+    "approvals": [
+      "Approved",
+      "Approved"
+    ],
+    "currentStage": 1,
+    "status": "Approved",
+    "viewers": [
+      "stevaniah.kavela@maishabank.com",
+      "mercy.mukhwana@maishabank.com",
+      "patrick.ndegwa@maishabank.com"
+    ],
+    "primaryHOD": "stevaniah.kavela@maishabank.com",
+    "returnedToApplicant": false,
+    "timestamp": "2026-02-17T11:51:44.602Z"
+  },
+  {
+    "id": "LEAVE-3TFG90T",
+    "type": "Annual",
+    "days": 3,
+    "email": "margaret.njeri@maishabank.com",
+    "applicantName": "Margaret Njeri",
+    "department": "Finance",
+    "approvals": [
+      "Rejected",
+      null
+    ],
+    "currentStage": 0,
+    "status": "Rejected",
+    "viewers": [
+      "stevaniah.kavela@maishabank.com",
+      "mercy.mukhwana@maishabank.com",
+      "patrick.ndegwa@maishabank.com"
+    ],
+    "primaryHOD": "stevaniah.kavela@maishabank.com",
+    "returnedToApplicant": true,
+    "timestamp": "2026-02-17T11:51:44.627Z"
+  }
+]

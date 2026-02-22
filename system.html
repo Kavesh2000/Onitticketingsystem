@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onit Portal - Dashboard</title>
+    <link rel="icon" href="assets/onit-logo.png" type="image/png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar-link { transition: all 0.3s ease; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.06); transform: translateX(4px); }
+        .sidebar-link.active { background-color: rgba(255,255,255,0.08); border-left: 4px solid rgba(255,255,255,0.12); }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <aside class="w-64 bg-gradient-to-b from-teal-700 to-teal-900 text-white p-6">
+            <div class="mb-6 pb-6 border-b border-teal-600 flex items-center gap-3">
+                    <img src="assets/onit-logo.png" alt="Onit MFB logo" class="w-12 h-12 object-contain">
+                    <div>
+                        <h1 class="text-xl font-bold">Onit</h1>
+                        <p class="text-xs text-teal-200">MFB Portal</p>
+                    </div>
+            </div>
+            <div class="mb-4 pb-4 border-b border-teal-600">
+                <p class="text-sm text-teal-100">Logged in as:</p>
+                <p id="userNameDisplay" class="font-semibold">-</p>
+                <p id="userTypeDisplay" class="text-xs text-teal-200">-</p>
+            </div>
+            <nav class="space-y-2">
+                <button onclick="switchSection('dashboard')" class="sidebar-link active w-full text-left px-4 py-3 rounded">📊 Dashboard</button>
+                <button onclick="switchSection('tickets')" class="sidebar-link w-full text-left px-4 py-3 rounded">🎫 Tickets</button>
+                <button onclick="switchSection('leave')" class="sidebar-link w-full text-left px-4 py-3 rounded">🏖️ Leave Management</button>
+                <button onclick="switchSection('claims')" class="sidebar-link w-full text-left px-4 py-3 rounded">💰 Expense Claims</button>
+                <button id="adminUsersNav" onclick="switchSection('users')" class="sidebar-link w-full text-left px-4 py-3 rounded hidden">👥 Manage Users</button>
+            </nav>
+            <div class="mt-8 pt-8 border-t border-teal-600">
+                <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-auto">
+            <div id="dashboard" class="content-section active p-8">
+                <h2 class="text-3xl font-bold mb-4">Dashboard</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded shadow">
+                        <p>Total Tickets: <span id="totalTickets">0</span></p>
+                        <p>Open Tickets: <span id="openTickets">0</span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <p>Name: <span id="infoName">-</span></p>
+                        <p>Email: <span id="infoEmail">-</span></p>
+                        <p>Type: <span id="infoType">-</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tickets" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Tickets</h2>
+                    <button onclick="showNewTicketForm()" class="bg-blue-600 text-white px-4 py-2 rounded">+ New Ticket</button>
+                </div>
+                <div id="newTicketForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <h3 class="font-semibold mb-2">Submit New Ticket</h3>
+                    <form id="ticketFormEl" class="space-y-3">
+                        <input id="ticketSubject" placeholder="Subject" required class="w-full p-2 border rounded" />
+                        <textarea id="ticketDescription" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
+                        <div class="flex gap-2">
+                            <select id="ticketPriority" class="p-2 border rounded">
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewTicketForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-purple-600 to-purple-800 text-white"><tr><th class="p-3 text-left font-bold">🎫 ID</th><th class="p-3 text-left font-bold">📋 Subject</th><th class="p-3 text-left font-bold">⚡ Priority</th><th class="p-3 text-left font-bold">✓ Status</th></tr></thead>
+                        <tbody id="ticketsList"><tr><td class="p-4 text-center" colspan="4">No tickets</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="leave" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Leave Management</h2>
+                    <button onclick="showNewLeaveForm()" class="bg-green-600 text-white px-4 py-2 rounded">+ Request Leave</button>
+                </div>
+                
+                <!-- Leave Balance Card -->
+                <div class="bg-white rounded shadow p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Your Leave Balance</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-blue-600" id="balanceAnnual">21</p>
+                            <p class="text-gray-600">Annual</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-orange-600" id="balanceSick">7</p>
+                            <p class="text-gray-600">Sick</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-2xl font-bold text-purple-600" id="balancePersonal">0</p>
+                            <p class="text-gray-600">Personal</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="newLeaveForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <!-- Department Info -->
+                    <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                        <p class="text-sm text-gray-600">Your Department</p>
+                        <p class="text-lg font-bold text-blue-700" id="leaveFormDept">-</p>
+                        <p class="text-xs text-gray-500 mt-1">This determines which HOD will review your request</p>
+                    </div>
+                    
+                    <form id="leaveFormEl" class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-semibold mb-1">Leave Type</label>
+                            <select id="leaveType" required class="p-2 border rounded w-full"><option value="Annual">Annual</option><option value="Sick">Sick</option></select>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Start Date</label>
+                                <input id="leaveStart" type="date" required class="w-full p-2 border rounded" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">End Date</label>
+                                <input id="leaveEnd" type="date" required class="w-full p-2 border rounded" />
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="bg-green-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewLeaveForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow p-4">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-orange-600 to-orange-800 text-white"><tr><th class="p-3 text-left font-bold">📋 ID</th><th class="p-3 text-left font-bold">🏖️ Type</th><th class="p-3 text-left font-bold">⏱️ Days</th><th class="p-3 text-left font-bold">✓ Status</th></tr></thead>
+                        <tbody id="leaveList"><tr><td class="p-4 text-center" colspan="4">No leave requests</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Expense Claims Section -->
+            <div id="claims" class="content-section p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">Expense Claims</h2>
+                    <button onclick="showNewClaimForm()" class="bg-orange-600 text-white px-4 py-2 rounded">+ New Claim</button>
+                </div>
+                <div id="newClaimForm" class="hidden bg-white p-6 rounded shadow mb-4">
+                    <h3 class="font-semibold mb-2">Submit Expense Claim</h3>
+                    <form id="claimFormEl" class="space-y-3">
+                        <input id="claimAmount" type="number" min="0" step="0.01" placeholder="Amount" required class="w-full p-2 border rounded" />
+                        <select id="claimType" required class="w-full p-2 border rounded"><option value="">Select Type</option><option value="Travel">Travel</option><option value="Meals">Meals</option><option value="Supplies">Supplies</option><option value="Other">Other</option></select>
+                        <textarea id="claimDescription" placeholder="Description" required class="w-full p-2 border rounded"></textarea>
+                        <div class="flex gap-2">
+                            <button class="bg-orange-600 text-white px-4 py-2 rounded" type="submit">Submit</button>
+                            <button type="button" class="px-4 py-2 rounded bg-gray-200" onclick="hideNewClaimForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow p-4">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-blue-600 to-blue-800 text-white"><tr><th class="p-3 text-left font-bold">📋 ID</th><th class="p-3 text-left font-bold">💰 Type</th><th class="p-3 text-left font-bold">💵 Amount</th><th class="p-3 text-left font-bold">✓ Status</th><th class="p-3 text-left font-bold">⚙️ Actions</th></tr></thead>
+                        <tbody id="claimsList"><tr><td class="p-4 text-center" colspan="5">No claims</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Manage Claims Section (Finance Officer/HOD Finance) -->
+            <div id="manageclaims" class="content-section p-8 hidden">
+                <h2 class="text-2xl font-bold mb-4">Manage Claims</h2>
+                <div class="bg-white rounded shadow p-4 mb-4">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2 text-left">ID</th>
+                                <th class="p-2 text-left">Claimant</th>
+                                <th class="p-2 text-left">Type</th>
+                                <th class="p-2 text-left">Amount</th>
+                                <th class="p-2 text-left">Current Step</th>
+                                <th class="p-2 text-left">Status</th>
+                                <th class="p-2 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manageClaimsList">
+                            <tr><td class="p-4 text-center" colspan="7">No claims to review</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pending Approvals Section (Admin/Finance/Teller Only) -->
+            <div id="approvals" class="content-section p-8">
+                <h2 class="text-2xl font-bold mb-4">Pending Approvals</h2>
+                <div id="approvalsList" class="space-y-4">
+                    <p class="text-gray-500">No pending approvals</p>
+                </div>
+            </div>
+
+            <!-- Approval Modal -->
+            <div id="approvalModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+                <div class="bg-white p-8 rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <h3 class="text-2xl font-bold mb-4">Review Claim</h3>
+                    <div id="claimDetails" class="mb-6 p-4 bg-gray-50 rounded space-y-2"></div>
+                    <div id="workflowProgress" class="mb-6 hidden">
+                        <h4 class="font-semibold mb-3">Approval Progress</h4>
+                        <div id="progressSteps" class="space-y-2"></div>
+                    </div>
+                    <div id="approvalControls" class="mb-6 hidden">
+                        <textarea id="approvalComment" placeholder="Comments (optional)" rows="3" class="w-full p-2 border rounded mb-2"></textarea>
+                        <div class="flex gap-2">
+                            <button onclick="approveClaim()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded">Approve</button>
+                            <button onclick="showRejectForm()" class="flex-1 bg-red-600 text-white px-4 py-2 rounded">Reject</button>
+                        </div>
+                    </div>
+                    <div id="rejectForm" class="mb-6 hidden">
+                        <textarea id="rejectionReason" placeholder="Reason for rejection *" rows="3" class="w-full p-2 border rounded mb-2" required></textarea>
+                        <button onclick="submitRejection()" class="w-full bg-red-600 text-white px-4 py-2 rounded">Submit Rejection</button>
+                    </div>
+                    <button onclick="closeApprovalModal()" class="w-full bg-gray-300 px-4 py-2 rounded">Close</button>
+                </div>
+            </div>
+
+            <!-- Manage Users Section (Admin Only) -->
+            <div id="users" class="content-section p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold">Manage Users</h2>
+                        <p class="text-sm text-gray-600 mt-1">Create Finance Portal users for testing</p>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="createDemoUsers()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">🧪 Create Demo Users</button>
+                        <button onclick="showNewUserForm()" class="bg-purple-600 text-white px-4 py-2 rounded">+ Add User</button>
+                    </div>
+                </div>
+
+                <div id="newUserForm" class="hidden bg-white p-6 rounded shadow mb-6">
+                    <h3 class="font-semibold mb-4 text-lg">Create New User</h3>
+                    <form id="userFormEl" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input id="newUserName" type="text" placeholder="Full Name" required class="p-3 border rounded" />
+                        <input id="newUserEmail" type="email" placeholder="Email" required class="p-3 border rounded" />
+                        
+                        <select id="newUserRole" required class="p-3 border rounded">
+                            <option value="">Select Role</option>
+                            <option value="User">User</option>
+                            <option value="Finance Officer">Finance Officer</option>
+                            <option value="HOD Finance">HOD Finance</option>
+                            <option value="HR">HR</option>
+                            <option value="HOD ICT">HOD ICT</option>
+                            <option value="HOD Branch">HOD Branch</option>
+                            <option value="HOD Customer Service">HOD Customer Service</option>
+                        </select>
+                        
+                        <select id="newUserDept" class="p-3 border rounded">
+                            <option value="">Select Department</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Operations">Operations</option>
+                            <option value="HR">HR</option>
+                            <option value="IT">IT</option>
+                        </select>
+                        
+                        <input id="newUserPassword" type="password" placeholder="Password" required class="p-3 border rounded" />
+                        
+                        <div class="flex gap-2">
+                            <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded flex-1">Create User</button>
+                            <button type="button" onclick="hideNewUserForm()" class="bg-gray-300 px-4 py-2 rounded flex-1">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="bg-white rounded shadow overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-3 text-left">Name</th>
+                                <th class="p-3 text-left">Email</th>
+                                <th class="p-3 text-left">Role</th>
+                                <th class="p-3 text-left">Department</th>
+                                <th class="p-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersList">
+                            <tr><td class="p-4 text-center" colspan="5">No users created yet</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="approval-workflow.js"></script>
+    <script>
+        let workflow;
+        let currentApprovalWF = null;
+
+        function switchSection(id){ 
+            document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active')); 
+            document.getElementById(id).classList.add('active');
+        }
+        
+        function showNewClaimForm(){ document.getElementById('newClaimForm').classList.remove('hidden'); }
+        function hideNewClaimForm(){ document.getElementById('newClaimForm').classList.add('hidden'); }
+        function showNewTicketForm(){ document.getElementById('newTicketForm').classList.remove('hidden'); }
+        function hideNewTicketForm(){ document.getElementById('newTicketForm').classList.add('hidden'); }
+        function showNewLeaveForm(){ 
+            const userDept = localStorage.getItem('userDept') || 'Not Set';
+            document.getElementById('leaveFormDept').textContent = userDept;
+            console.log('[LEAVE FORM] Showing form with department:', userDept);
+            document.getElementById('newLeaveForm').classList.remove('hidden'); 
+        }
+        function hideNewLeaveForm(){ document.getElementById('newLeaveForm').classList.add('hidden'); }
+        function logout(){ 
+            // Clear only auth data, preserve business data (requests, tickets, etc)
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userDept');
+            localStorage.removeItem('isAdmin');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userId');
+            window.location.href='index.html'; 
+        }
+
+        // init
+        window.addEventListener('load', ()=>{
+            if(!localStorage.getItem('userId')) { window.location.href='index.html'; return; }
+            
+            // Auto-create demo finance users on first admin login
+            if(localStorage.getItem('isAdmin')==='true' && !localStorage.getItem('financeUsers')) {
+                const demoUsers = [
+                    {
+                        name: 'John Finance Officer',
+                        email: 'john.finance@onit.local',
+                        role: 'Finance Officer',
+                        department: 'Finance',
+                        password: '1234',
+                        leaveBalances: { annual: 21, sick: 7, personal: 0 },
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        name: 'Sarah HOD Finance',
+                        email: 'sarah.hof@onit.local',
+                        role: 'HOD Finance',
+                        department: 'Finance',
+                        password: '1234',
+                        leaveBalances: { annual: 21, sick: 7, personal: 0 },
+                        createdAt: new Date().toISOString()
+                    }
+                ];
+                localStorage.setItem('financeUsers', JSON.stringify(demoUsers));
+            }
+            
+            const userRole = localStorage.getItem('userRole') || 'User';
+            document.getElementById('userNameDisplay').textContent = localStorage.getItem('userName') || '-';
+            document.getElementById('userTypeDisplay').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : userRole;
+            document.getElementById('infoName').textContent = localStorage.getItem('userName')||'-';
+            document.getElementById('infoEmail').textContent = localStorage.getItem('userEmail')||'-';
+            document.getElementById('infoType').textContent = (localStorage.getItem('isAdmin')==='true') ? 'Admin' : userRole;
+            
+            // Show Manage Claims nav for Finance Officer/HOD Finance
+            const isFinanceRole = userRole === 'Finance Officer' || (userRole || '').includes('HOD');
+            if(isFinanceRole) {
+                document.getElementById('manageclaimsNav').classList.remove('hidden');
+            }
+            
+            // Show Manage Users nav for Admin only
+            if(localStorage.getItem('isAdmin')==='true') {
+                document.getElementById('adminUsersNav').classList.remove('hidden');
+            }
+            
+            // Show approval nav for Finance Officer/HOD Finance/Admin
+            if(userRole === 'Finance Officer' || (userRole || '').includes('HOD') || localStorage.getItem('isAdmin')==='true') {
+                document.getElementById('approvalNav').classList.remove('hidden');
+            }
+            // Show HR portal nav when someone with HR role logs in
+            if(userRole === 'HR' || localStorage.getItem('isAdmin')==='true') {
+                const hrNav = document.getElementById('hrNav');
+                if(hrNav) hrNav.classList.remove('hidden');
+            }
+            // Show HOD portal nav to HOD users or admins
+            if(userRole === 'HOD' || localStorage.getItem('isAdmin')==='true') {
+                const hodNav = document.getElementById('hodNav');
+                if(hodNav) hodNav.classList.remove('hidden');
+            }
+            
+            // Initialize workflow for expense claims
+            const claimWorkflowConfig = {
+                moduleName: 'expense',
+                steps: [
+                    { stepId: 'finance-officer-review', role: 'Finance Officer', department: 'Finance', approver: 'Finance Officer' },
+                    { stepId: 'head-of-finance-review', role: 'HOD Finance', department: 'Finance', approver: 'HOD Finance' }
+                ]
+            };
+            workflow = new ApprovalWorkflow(claimWorkflowConfig);
+            
+            loadTickets(); loadLeaveRequests(); loadClaims(); loadUsers(); updateStats(); updateLeaveBalance();
+        });
+
+        function updateStats(){ const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); document.getElementById('totalTickets').textContent=tickets.length; document.getElementById('openTickets').textContent=tickets.filter(t=>t.status==='Open').length; }
+
+        function loadTickets(){ const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); const isAdmin=localStorage.getItem('isAdmin')==='true'; const userEmail=localStorage.getItem('userEmail'); const filtered=isAdmin?tickets:tickets.filter(t=>t.email===userEmail); const tbody=document.getElementById('ticketsList'); if(filtered.length===0){ tbody.innerHTML='<tr><td colspan="4" class="p-4 text-center">No tickets</td></tr>'; return; } tbody.innerHTML=filtered.map(t=>`<tr><td class="p-2">${t.id}</td><td class="p-2">${t.subject}</td><td class="p-2">${t.priority}</td><td class="p-2">${t.status}</td></tr>`).join(''); }
+
+        document.getElementById('ticketFormEl').addEventListener('submit', function(e){ e.preventDefault(); const id='TICK-'+Math.random().toString(36).slice(2,9).toUpperCase(); const ticket={ id, subject:document.getElementById('ticketSubject').value, description:document.getElementById('ticketDescription').value, priority:document.getElementById('ticketPriority').value||'Low', status:'Open', email:localStorage.getItem('userEmail'), timestamp:new Date().toISOString() }; const tickets=JSON.parse(localStorage.getItem('tickets')||'[]'); tickets.push(ticket); localStorage.setItem('tickets', JSON.stringify(tickets)); hideNewTicketForm(); this.reset(); loadTickets(); updateStats(); alert('Ticket submitted: '+id); });
+
+        // Multi-step submission: route to HOD(s) first, then Admin
+        document.getElementById('leaveFormEl').addEventListener('submit', async function(e){
+            console.log('[LEAVE] ✓ FORM SUBMIT TRIGGERED');
+            e.preventDefault();
+            try {
+                const userEmail = localStorage.getItem('userEmail') || '';
+                const userName = localStorage.getItem('userName') || '';
+                let userDept = localStorage.getItem('userDept') || null;
+                
+                console.log('[LEAVE] ✓ Form submitted by:', {userEmail, userName, userDept});
+                
+                // Validate department was loaded
+                if (!userDept || userDept === 'Not Set' || userDept === 'Unknown') {
+                    console.warn('[LEAVE] No valid department found. Fetching from backend...');
+                    // Try to get department from backend
+                    try {
+                        const resp = await fetch('/api/users');
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            if (data && data.success && Array.isArray(data.users)) {
+                                const currentUser = data.users.find(u => u.email === userEmail);
+                                if (currentUser) {
+                                    userDept = currentUser.department;
+                                    console.log('[LEAVE] Department fetched from backend:', userDept);
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[LEAVE] Could not fetch user from backend:', err);
+                    }
+                }
+                
+                // Still no department? Use General
+                if (!userDept) {
+                    userDept = 'General';
+                    console.warn('[LEAVE] Still no department, using default: ' + userDept);
+                }
+
+                const id = 'LEAVE-' + Math.random().toString(36).slice(2,9).toUpperCase();
+                const leaveType = document.getElementById('leaveType').value;
+                const startDate = document.getElementById('leaveStart').value;
+                const endDate = document.getElementById('leaveEnd').value;
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Start date and end date are required');
+                }
+                
+                console.log('[LEAVE] Department confirmed:', userDept);
+
+                // Fetch all users to find HODs and Admin
+                let allUsers = [];
+                try {
+                    const resp = await fetch('/api/users');
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        if (data && data.success && Array.isArray(data.users)) {
+                            allUsers = data.users;
+                            console.log('[LEAVE] Fetched users: total=' + allUsers.length);
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[LEAVE] Could not fetch users:', err.message);
+                }
+
+                // Find Admin
+                const adminUser = allUsers.find(u => (u.role || '').toLowerCase() === 'admin');
+                console.log('[LEAVE] Admin user:', adminUser ? adminUser.email : 'NOT FOUND');
+
+                // Find HODs matching the user's department (case-insensitive)
+                const departmentHODs = allUsers.filter(u => {
+                    const userRole = (u.role || '').toLowerCase();
+                    const userDepartment = (u.department || '').toLowerCase();
+                    const isHOD = userRole === 'hod';
+                    const isSameDept = userDepartment === userDept.toLowerCase();
+                    
+                    if (isHOD && isSameDept) {
+                        console.log('[LEAVE] Found HOD:', {name: u.full_name, email: u.email, dept: u.department});
+                    }
+                    
+                    return isHOD && isSameDept;
+                });
+                
+                console.log('[LEAVE] HODs found for department "' + userDept + '":', departmentHODs.length);
+
+                // Build viewers: HODs + Admin
+                let viewers = departmentHODs.map(u => u.email);
+                if (adminUser && !viewers.includes(adminUser.email)) {
+                    viewers.push(adminUser.email);
+                }
+                
+                // Primary HOD
+                let primaryHOD = departmentHODs.length > 0 ? departmentHODs[0].email : (adminUser ? adminUser.email : null);
+
+                const req = {
+                    id,
+                    leaveType: leaveType,
+                    start: startDate,
+                    end: endDate,
+                    userEmail: userEmail,
+                    userName: userName,
+                    email: userEmail,
+                    applicantName: userName,
+                    department: userDept,
+                    approvals: [null, null],
+                    currentStage: 0,
+                    status: 'Pending',
+                    viewers: viewers,
+                    primaryHOD: primaryHOD,
+                    returnedToApplicant: false,
+                    timestamp: new Date().toISOString()
+                };
+
+                console.log('[LEAVE] ✓ Request object created:', {
+                    id: req.id,
+                    leaveType: req.leaveType,
+                    start: req.start,
+                    end: req.end,
+                    department: req.department,
+                    viewers: req.viewers,
+                    primaryHOD: req.primaryHOD
+                });
+
+                const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+                reqs.push(req);
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+
+                console.log('[LEAVE] ✓ Request stored in localStorage. Total requests: ' + reqs.length);
+
+                hideNewLeaveForm();
+                this.reset();
+                loadLeaveRequests();
+                
+            } catch (err) {
+                console.error('[LEAVE] ✗ Error:', err);
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Approve/reject helpers (operate by request id)
+        function approveLeaveById(id) {
+            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const idx = reqs.findIndex(r => r.id === id);
+            if (idx === -1) return alert('Request not found');
+            const req = reqs[idx];
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            if (req.currentStage === 0) {
+                // HOD approval: only primary HOD can approve
+                if (userEmail !== req.primaryHOD) return alert('Only the applicant\'s HOD can approve this stage');
+                req.approvals[0] = 'Approved';
+                req.currentStage = 1;
+                req.status = 'Pending';
+                // now visible to Admin
+                req.returnedToApplicant = false;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('HOD approved. Request forwarded to Admin.');
+                loadLeaveRequests();
+                return;
+            }
+
+            if (req.currentStage === 1) {
+                if (!isAdmin) return alert('Only Admin can approve at this stage');
+                req.approvals[1] = 'Approved';
+                req.status = 'Approved';
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('Request fully approved by Admin.');
+                loadLeaveRequests();
+                return;
+            }
+        }
+
+        function rejectLeaveById(id) {
+            const reqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const idx = reqs.findIndex(r => r.id === id);
+            if (idx === -1) return alert('Request not found');
+            const req = reqs[idx];
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            if (req.currentStage === 0) {
+                // HOD rejection: return to applicant, do not send to Admin
+                if (userEmail !== req.primaryHOD) return alert('Only the applicant\'s HOD can reject this stage');
+                req.approvals[0] = 'Rejected';
+                req.status = 'Rejected';
+                req.returnedToApplicant = true;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('HOD rejected the request. Sent back to applicant.');
+                loadLeaveRequests();
+                return;
+            }
+
+            if (req.currentStage === 1) {
+                if (!isAdmin) return alert('Only Admin can reject at this stage');
+                req.approvals[1] = 'Rejected';
+                req.status = 'Rejected';
+                req.returnedToApplicant = true;
+                localStorage.setItem('leaveRequests', JSON.stringify(reqs));
+                alert('Admin rejected the request. Sent back to applicant.');
+                loadLeaveRequests();
+                return;
+            }
+        }
+
+        // Render leave requests with HOD/Admin approval actions
+        function updateLeaveBalance(){
+            // Fetch current user's leave balance from demo users or backend
+            const userEmail = localStorage.getItem('userEmail') || '';
+            let balance = { annual: 21, sick: 7, personal: 0 };
+            
+            // Try to load from financeUsers
+            let demoUsers = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            let currentUser = demoUsers.find(u => u.email === userEmail);
+            
+            if(!currentUser) {
+                // Try to load from employees array  
+                const employees = JSON.parse(localStorage.getItem('employees')||'[]');
+                currentUser = employees.find(u => u.email === userEmail);
+            }
+            
+            if(currentUser && currentUser.leaveBalances) {
+                balance = currentUser.leaveBalances;
+            }
+            
+            // Update the display
+            const annualEl = document.getElementById('balanceAnnual');
+            const sickEl = document.getElementById('balanceSick');
+            const personalEl = document.getElementById('balancePersonal');
+            
+            if(annualEl) annualEl.textContent = balance.annual || 21;
+            if(sickEl) sickEl.textContent = balance.sick || 7;
+            if(personalEl) personalEl.textContent = balance.personal || 0;
+        }
+
+        function loadLeaveRequests(){
+            const allReqs = JSON.parse(localStorage.getItem('leaveRequests')||'[]');
+            const userEmail = localStorage.getItem('userEmail') || '';
+            const userRole = localStorage.getItem('userRole') || '';
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+            // Determine which requests to show:
+            // - Applicants see their own requests
+            // - HODs (including 'Head of ...' roles) see requests where they are in the viewers list
+            // - Admin sees requests that have advanced to stage 1 and not returned
+            let filtered = allReqs.filter(r => r.email === userEmail);
+
+            // treat roles like 'HOD Finance' or any role containing 'HOD' as HOD-like
+            const _roleNorm = (userRole||'').toString().toLowerCase();
+            const isHodLike = _roleNorm.includes('hod') || _roleNorm.includes('head') || _roleNorm.includes('head of');
+
+            if (isHodLike) {
+                filtered = allReqs.filter(r => Array.isArray(r.viewers) && r.viewers.includes(userEmail));
+            }
+
+            if (isAdmin) {
+                filtered = allReqs.filter(r => r.currentStage === 1 && r.status === 'Pending' && !r.returnedToApplicant);
+            }
+
+            const tbody = document.getElementById('leaveList');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center">No leave requests</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((r) => {
+                const stageInfo = ['HOD','Admin'].map((s,i)=> `${s}: ${r.approvals[i]||'Pending'}`).join(' | ');
+                let actionBtns = '';
+                const userEmailNow = localStorage.getItem('userEmail') || '';
+                const isUserPrimaryHOD = (userEmailNow === r.primaryHOD);
+
+                if (userRole === 'HOD' && r.currentStage === 0 && r.status === 'Pending' && isUserPrimaryHOD) {
+                    actionBtns = `<button onclick="approveLeaveById('${r.id}')" class="px-2 py-1 bg-green-500 text-white rounded mr-2">Approve (HOD)</button><button onclick="rejectLeaveById('${r.id}')" class="px-2 py-1 bg-red-500 text-white rounded">Reject (HOD)</button>`;
+                }
+
+                if (isAdmin && r.currentStage === 1 && r.status === 'Pending') {
+                    actionBtns = `<button onclick="approveLeaveById('${r.id}')" class="px-2 py-1 bg-green-600 text-white rounded mr-2">Approve (Admin)</button><button onclick="rejectLeaveById('${r.id}')" class="px-2 py-1 bg-red-600 text-white rounded">Reject (Admin)</button>`;
+                }
+
+                return `<tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-semibold">${r.id}</td>
+                    <td class="px-6 py-4">${r.type}</td>
+                    <td class="px-6 py-4">${r.days}</td>
+                    <td class="px-6 py-4">${r.department || '-'}</td>
+                    <td class="px-6 py-4">${stageInfo}</td>
+                    <td class="px-6 py-4">${actionBtns}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Expense Claims with Approval Workflow
+        function loadClaims() {
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            const isAdmin = localStorage.getItem('isAdmin')==='true';
+            const userEmail = localStorage.getItem('userEmail');
+            const filtered = isAdmin ? claims : claims.filter(c => c.email === userEmail);
+            const tbody = document.getElementById('claimsList');
+            
+            if(filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center">No claims</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filtered.map(claim => {
+                const wfs = workflow.getWorkflowsByRequestId(claim.id);
+                const wf = wfs[0];
+                const status = wf ? wf.status : 'submitted';
+                const statusClass = status === 'approved' ? 'bg-green-100' : status === 'rejected' ? 'bg-red-100' : 'bg-yellow-100';
+                return `<tr><td class="p-2">${claim.id}</td><td class="p-2">${claim.type}</td><td class="p-2">₦${parseFloat(claim.amount).toFixed(2)}</td><td class="p-2"><span class="px-2 py-1 rounded text-xs ${statusClass}">${status}</span></td><td class="p-2"><button onclick="viewClaimDetails('${claim.id}', '${wf ? wf.id : ''}')" class="text-blue-600">View</button></td></tr>`;
+            }).join('');
+        }
+
+        document.getElementById('claimFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nextIds = JSON.parse(localStorage.getItem('claimNextId') || '{"id": 1}');
+            const id = String(nextIds.id);
+            nextIds.id++;
+            localStorage.setItem('claimNextId', JSON.stringify(nextIds));
+            const claim = {
+                id,
+                claimant: localStorage.getItem('userName'),
+                email: localStorage.getItem('userEmail'),
+                type: document.getElementById('claimType').value,
+                amount: parseFloat(document.getElementById('claimAmount').value),
+                description: document.getElementById('claimDescription').value,
+                status: 'SUBMITTED',
+                currentStep: 'finance-review',
+                timestamp: new Date().toISOString()
+            };
+            
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            claims.push(claim);
+            localStorage.setItem('expenseClaims', JSON.stringify(claims));
+            
+            // Create approval workflow
+            try {
+                workflow.createWorkflow(id, 'expense', claim, claim.email);
+                alert('Claim submitted: ' + id + '\n\nStatus: Awaiting Finance Officer Review');
+            } catch(e) {
+                alert('Error creating workflow: ' + e.message);
+            }
+            
+            hideNewClaimForm();
+            this.reset();
+            loadClaims();
+        });
+
+        function loadPendingApprovals() {
+            const isAdmin = localStorage.getItem('isAdmin') === 'true';
+            const userRole = localStorage.getItem('userRole') || 'User';
+            let pending = [];
+            
+            // Admin should NOT see approvals here - only Finance Portal handles approvals
+            if(isAdmin) {
+                // Admins don't handle approvals, they are user management only
+                pending = [];
+            } else {
+                // Regular users see only approvals for their role
+                pending = workflow.getPendingApprovalsForRole(userRole);
+            }
+            
+            const container = document.getElementById('approvalsList');
+            
+            if(pending.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No pending approvals</p>';
+                return;
+            }
+            
+            container.innerHTML = pending.map(wf => `
+                <div class="bg-white p-4 rounded shadow border-l-4 border-orange-500">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold">${wf.data.type} - ₦${parseFloat(wf.data.amount).toFixed(2)}</h3>
+                            <p class="text-sm text-gray-600">Claimant: ${wf.data.claimant}</p>
+                            <p class="text-sm text-gray-600">ID: ${wf.data.id}</p>
+                        </div>
+                        <button onclick="viewClaimDetails('${wf.data.id}', '${wf.id}')" class="bg-blue-600 text-white px-4 py-2 rounded">Review</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function viewClaimDetails(claimId, workflowId) {
+            const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+            const claim = claims.find(c => c.id === claimId);
+            if(!claim) return;
+
+            currentApprovalWF = workflowId ? workflow.getWorkflow(workflowId) : null;
+
+            document.getElementById('claimDetails').innerHTML = `
+                <p><strong>ID:</strong> ${claim.id}</p>
+                <p><strong>Claimant:</strong> ${claim.claimant}</p>
+                <p><strong>Amount:</strong> ₦${parseFloat(claim.amount).toFixed(2)}</p>
+                <p><strong>Type:</strong> ${claim.type}</p>
+                <p><strong>Description:</strong> ${claim.description}</p>
+                <p><strong>Status:</strong> ${claim.status}</p>
+            `;
+
+            if(currentApprovalWF) {
+                document.getElementById('workflowProgress').classList.remove('hidden');
+                const progress = workflow.getApprovalProgress(workflowId);
+                const stepHtml = progress.steps.map(s => {
+                    const icon = s.status === 'approved' ? '✅' : s.status === 'rejected' ? '❌' : s.status === 'pending' ? '⏳' : '⏸️';
+                    return `<div class="p-3 bg-gray-100 rounded"><strong>${icon} ${s.stepId}</strong> (${s.role}/${s.department||'N/A'}) - ${s.status}</div>`;
+                }).join('');
+                document.getElementById('progressSteps').innerHTML = stepHtml;
+
+                const currentStep = currentApprovalWF.steps[currentApprovalWF.currentStep];
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const isCurrentRoleAndDept = currentStep && currentStep.status === 'pending' && 
+                                            currentStep.role === userRole && 
+                                            (!currentStep.department || currentStep.department === userDept);
+                
+                if(isCurrentRoleAndDept) {
+                    document.getElementById('approvalControls').classList.remove('hidden');
+                } else {
+                    document.getElementById('approvalControls').classList.add('hidden');
+                }
+            } else {
+                document.getElementById('workflowProgress').classList.add('hidden');
+                document.getElementById('approvalControls').classList.add('hidden');
+            }
+
+            document.getElementById('rejectForm').classList.add('hidden');
+            document.getElementById('approvalModal').classList.remove('hidden');
+        }
+
+        function approveClaim() {
+            try {
+                const comment = document.getElementById('approvalComment').value;
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const userEmail = localStorage.getItem('userEmail');
+                const currentStep = currentApprovalWF.steps[currentApprovalWF.currentStep];
+                
+                workflow.approveStep(currentApprovalWF.id, userEmail, userRole, userDept, comment);
+                
+                const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+                const claim = claims.find(c => c.id === currentApprovalWF.requestId);
+                if(claim) {
+                    if(currentApprovalWF.currentStep === 0) {
+                        claim.status = 'FINANCE_OFFICER_APPROVED';
+                    } else if(currentApprovalWF.currentStep === 1) {
+                        claim.status = 'APPROVED';
+                    }
+                    localStorage.setItem('expenseClaims', JSON.stringify(claims));
+                }
+                
+                const stepName = currentStep.stepId === 'finance-officer-review' ? 'Finance Officer' : 'HOD Finance';
+                const nextAction = currentStep.stepId === 'finance-officer-review' ? 'sent to HOD Finance for final approval' : 'fully approved';
+                alert(`Claim approved by ${stepName}! Claim has been ${nextAction}.`);
+                closeApprovalModal();
+                loadClaims();
+                loadPendingApprovals();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function showRejectForm() {
+            document.getElementById('rejectForm').classList.remove('hidden');
+        }
+
+        function submitRejection() {
+            const reason = document.getElementById('rejectionReason').value.trim();
+            if(!reason) {
+                alert('Please provide a rejection reason');
+                return;
+            }
+            try {
+                const userRole = localStorage.getItem('userRole') || 'User';
+                const userDept = localStorage.getItem('userDept') || '';
+                const userEmail = localStorage.getItem('userEmail');
+                workflow.rejectStep(currentApprovalWF.id, userEmail, userRole, userDept, reason);
+                
+                const claims = JSON.parse(localStorage.getItem('expenseClaims')||'[]');
+                const claim = claims.find(c => c.id === currentApprovalWF.requestId);
+                if(claim) {
+                    claim.status = 'REJECTED';
+                    localStorage.setItem('expenseClaims', JSON.stringify(claims));
+                }
+                
+                alert('Claim rejected: ' + reason + '\\n\\nUser will be notified.');
+                closeApprovalModal();
+                loadClaims();
+                loadPendingApprovals();
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function closeApprovalModal() {
+            document.getElementById('approvalModal').classList.add('hidden');
+        }
+
+        // Manage Users Functions
+        function showNewUserForm() {
+            document.getElementById('newUserForm').classList.remove('hidden');
+        }
+
+        function hideNewUserForm() {
+            document.getElementById('newUserForm').classList.add('hidden');
+            document.getElementById('userFormEl').reset();
+        }
+
+        function loadUsers() {
+            const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            const tbody = document.getElementById('usersList');
+            
+            if(users.length === 0) {
+                tbody.innerHTML = '<tr><td class="p-4 text-center" colspan="5">No users created yet</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map((user, idx) => `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-3">${user.name}</td>
+                    <td class="p-3">${user.email}</td>
+                    <td class="p-3"><span class="px-2 py-1 bg-blue-100 rounded text-xs font-semibold">${user.role}</span></td>
+                    <td class="p-3">${user.department || '-'}</td>
+                    <td class="p-3">
+                        <button onclick="deleteUser(${idx})" class="text-red-600 hover:text-red-800 text-sm font-semibold">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('userFormEl').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const role = document.getElementById('newUserRole').value;
+            const dept = document.getElementById('newUserDept').value;
+            const password = document.getElementById('newUserPassword').value;
+            
+            if(!name || !email || !role || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+            
+            // Check if email already exists
+            if(users.find(u => u.email === email)) {
+                alert('User with this email already exists');
+                return;
+            }
+            
+            const newUser = {
+                name,
+                email,
+                role,
+                department: dept || 'General',
+                password,
+                leaveBalances: { annual: 21, sick: 7, personal: 0 },
+                createdAt: new Date().toISOString()
+            };
+            
+            users.push(newUser);
+            localStorage.setItem('financeUsers', JSON.stringify(users));
+            
+            alert(`User created successfully!\n\nName: ${name}\nEmail: ${email}\nRole: ${role}\n\nThey can now log into the Finance Portal.`);
+            
+            hideNewUserForm();
+            loadUsers();
+        });
+
+        function deleteUser(index) {
+            if(confirm('Are you sure you want to delete this user?')) {
+                const users = JSON.parse(localStorage.getItem('financeUsers')||'[]');
+                const deleted = users.splice(index, 1);
+                localStorage.setItem('financeUsers', JSON.stringify(users));
+                alert(`User ${deleted[0].name} deleted successfully`);
+                loadUsers();
+            }
+        }
+
+        function createDemoUsers() {
+            const demoUsers = [
+                {
+                    name: 'John Finance Officer',
+                    email: 'john.finance@onit.local',
+                    role: 'Finance Officer',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Sarah HOD Finance',
+                    email: 'sarah.hof@onit.local',
+                    role: 'HOD Finance',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Helen HR Manager',
+                    email: 'helen.hr@onit.local',
+                    role: 'HR',
+                    department: 'HR',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Henry HOD Finance',
+                    email: 'henry.hod.finance@onit.local',
+                    role: 'HOD',
+                    department: 'Finance',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Irene HOD IT',
+                    email: 'irene.hod.it@onit.local',
+                    role: 'HOD',
+                    department: 'IT',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                },
+                {
+                    name: 'Olivia HOD Operations',
+                    email: 'olivia.hod.ops@onit.local',
+                    role: 'HOD',
+                    department: 'Operations',
+                    password: '1234',
+                    createdAt: new Date().toISOString()
+                }
+            ];
+
+            localStorage.setItem('financeUsers', JSON.stringify(demoUsers));
+            alert('Demo users created successfully!\n\nFinance Officer:\nEmail: john.finance@onit.local\nPassword: 1234\n\nHOD Finance:\nEmail: sarah.hof@onit.local\nPassword: 1234\n\nHR Manager:\nEmail: helen.hr@onit.local\nPassword: 1234\n\nHOD Finance:\nEmail: henry.hod.finance@onit.local\nPassword: 1234\n\nHOD ICT:\nEmail: irene.hod.it@onit.local\nPassword: 1234\n\nHOD Branch:\nEmail: olivia.hod.ops@onit.local\nPassword: 1234');
+            loadUsers();
+        }
+    </script>
+</body>
+</html>

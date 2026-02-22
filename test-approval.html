@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Leave Approval Test (Multi-Step)</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    .approved { color: green; }
+    .rejected { color: red; }
+    .pending { color: orange; }
+    .stage { font-size: 0.9em; color: #555; }
+  </style>
+</head>
+<body>
+  <h2>Leave Request Multi-Step Approval Test</h2>
+  <form id="leaveForm">
+    <label>Type:
+      <select id="type">
+        <option>Annual</option>
+        <option>Sick</option>
+        <option>Personal</option>
+      </select>
+    </label>
+    <label>Days: <input id="days" type="number" min="1" value="1"></label>
+    <button type="submit">Submit Request</button>
+  </form>
+  <div id="requests"></div>
+  <script>
+    const requests = [];
+    const stages = ['HOD', 'Admin'];
+    document.getElementById('leaveForm').onsubmit = function(e) {
+      e.preventDefault();
+      const req = {
+        id: 'LEAVE-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+        type: document.getElementById('type').value,
+        days: document.getElementById('days').value,
+        approvals: [null, null], // [HOD, Admin]
+        status: 'Pending',
+        currentStage: 0
+      };
+      requests.push(req);
+      render();
+    };
+    function approve(i) {
+      const req = requests[i];
+      req.approvals[req.currentStage] = 'Approved';
+      if (req.currentStage < stages.length - 1) {
+        req.currentStage++;
+        req.status = 'Pending';
+      } else {
+        req.status = 'Approved';
+      }
+      render();
+    }
+    function reject(i) {
+      const req = requests[i];
+      req.approvals[req.currentStage] = 'Rejected';
+      req.status = 'Rejected';
+      render();
+    }
+    function render() {
+      document.getElementById('requests').innerHTML = requests.map((r, i) => {
+        let stageInfo = stages.map((s, idx) =>
+          `<span class='stage'>${s}: <span class="${(r.approvals[idx]||'pending').toLowerCase()}">${r.approvals[idx]||'Pending'}</span></span>`
+        ).join(' | ');
+        let actionBtns = '';
+        if (r.status === 'Pending') {
+          actionBtns = `<button onclick="approve(${i})">Approve (${stages[r.currentStage]})</button> <button onclick="reject(${i})">Reject (${stages[r.currentStage]})</button>`;
+        }
+        return `<div style="margin-bottom:1em;">
+          <b>${r.id}</b> - ${r.type} (${r.days} days) - 
+          <span class="${r.status.toLowerCase()}">${r.status}</span><br>
+          ${stageInfo}<br>
+          ${actionBtns}
+        </div>`;
+      }).join('');
+    }
+    window.approve = approve;
+    window.reject = reject;
+  </script>
+</body>
+</html>
